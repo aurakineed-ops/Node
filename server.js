@@ -7,20 +7,19 @@ const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const cron = require('node-cron');
 const app = express();
 
 // ========== MASTER API KEYS ==========
 const MASTER_KEYS = {
-    subhxcosmo: 'ITACHI',           // https://api.subhxcosmo.in
-    ftosint: 'sahil',               // https://ft-osint-api.onrender.com (ALL WORKING)
-    ayaanmods: 'annonymousai',      // https://ayaanmods.site
-    truecallerLeak: 'RVN-0nPplC5gSSaeCE98otdrkwKk39c2WsHa'  // say-wallahai-bro
+    subhxcosmo: 'ITACHI',
+    ftosint: 'sahil',
+    ayaanmods: 'annonymousai',
+    truecallerLeak: 'RVN-0nPplC5gSSaeCE98otdrkwKk39c2WsHa'
 };
 
 // ========== DATABASE SETUP ==========
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'api_keys.db');
-console.log('📁 Database path:', DB_PATH);
-
 const db = new sqlite3.Database(DB_PATH);
 
 db.serialize(() => {
@@ -58,6 +57,15 @@ db.serialize(() => {
         ip_address TEXT
     )`);
 
+    // API status tracking
+    db.run(`CREATE TABLE IF NOT EXISTS api_status (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        endpoint_name TEXT,
+        is_up BOOLEAN DEFAULT 1,
+        last_checked DATETIME DEFAULT CURRENT_TIMESTAMP,
+        response_ms INTEGER
+    )`);
+
     // Available APIs table
     db.run(`CREATE TABLE IF NOT EXISTS available_apis (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,40 +80,30 @@ db.serialize(() => {
 
     // Create admin user (superadmin / aura@1234)
     const hashedPassword = bcrypt.hashSync('aura@1234', 10);
-    db.run(`INSERT OR REPLACE INTO users (id, username, password, role) VALUES (1, 'superadmin', ?, 'admin')`, [hashedPassword], (err) => {
-        if (err) console.error('Admin create error:', err);
-        else console.log('✅ Admin user: superadmin / aura@1234');
-    });
+    db.run(`INSERT OR REPLACE INTO users (id, username, password, role) VALUES (1, 'superadmin', ?, 'admin')`, [hashedPassword]);
 
     // Insert all working APIs
     db.get(`SELECT COUNT(*) as count FROM available_apis`, [], (err, row) => {
         if (row && row.count === 0) {
             const apis = [
-                // subhxcosmo APIs (ITACHI key)
-                ['telegram', '📞 Telegram Number Lookup', '/api/telegram', 'type,term', '{"type":"tg","term":"8489944328"}', 'Get Telegram account details from phone number'],
+                ['telegram', '📞 Telegram Number Lookup', '/api/telegram', 'type,term', '{"type":"tg","term":"8489944328"}', 'Get Telegram account details'],
                 ['family', '👨‍👩‍👧‍👦 Family Tree', '/api/family', 'term', '{"term":"979607168114"}', 'Family relationship lookup'],
-                
-                // ft-osint APIs (sahil key) - ALL WORKING
                 ['num_india', '🇮🇳 Indian Number Info', '/api/num-india', 'num', '{"num":"9876543210"}', 'Indian mobile number details'],
                 ['num_pak', '🇵🇰 Pakistani Number', '/api/num-pak', 'number', '{"number":"03001234567"}', 'Pakistani mobile number info'],
                 ['name_details', '👤 Name to Details', '/api/name-details', 'name', '{"name":"abhiraaj"}', 'Get information from name'],
-                ['bank_info', '🏦 Bank IFSC Info', '/api/bank', 'ifsc', '{"ifsc":"SBIN0001234"}', 'Bank branch details from IFSC code'],
-                ['pan_info', '📄 PAN Card Info', '/api/pan', 'pan', '{"pan":"AXDPR2606K"}', 'PAN card details verification'],
+                ['bank_info', '🏦 Bank IFSC Info', '/api/bank', 'ifsc', '{"ifsc":"SBIN0001234"}', 'Bank branch details'],
+                ['pan_info', '📄 PAN Card Info', '/api/pan', 'pan', '{"pan":"AXDPR2606K"}', 'PAN card details'],
                 ['vehicle_info', '🚗 Vehicle Info', '/api/vehicle', 'vehicle', '{"vehicle":"HR26DA1337"}', 'Vehicle registration details'],
                 ['rc_info', '📋 RC Details', '/api/rc', 'owner', '{"owner":"HR26EV0001"}', 'Registration certificate info'],
-                ['ip_info', '🌐 IP Geolocation', '/api/ip', 'ip', '{"ip":"8.8.8.8"}', 'IP address location and ISP details'],
+                ['ip_info', '🌐 IP Geolocation', '/api/ip', 'ip', '{"ip":"8.8.8.8"}', 'IP address location'],
                 ['pincode_info', '📍 Pincode Info', '/api/pincode', 'pin', '{"pin":"110001"}', 'Area details from pincode'],
-                ['git_info', '🐙 GitHub User', '/api/git', 'username', '{"username":"octocat"}', 'GitHub profile information'],
-                ['bgmi_info', '🎮 BGMI Player', '/api/bgmi', 'uid', '{"uid":"5121439477"}', 'Battlegrounds Mobile India player stats'],
+                ['git_info', '🐙 GitHub User', '/api/git', 'username', '{"username":"octocat"}', 'GitHub profile'],
+                ['bgmi_info', '🎮 BGMI Player', '/api/bgmi', 'uid', '{"uid":"5121439477"}', 'BGMI player stats'],
                 ['ff_info', '🔫 FreeFire ID', '/api/ff', 'uid', '{"uid":"123456789"}', 'FreeFire player details'],
                 ['aadhar_info', '🆔 Aadhar Info', '/api/aadhar', 'num', '{"num":"393933081942"}', 'Aadhar card verification'],
+                ['ai_image', '🎨 AI Image Gen', '/api/ai-image', 'prompt', '{"prompt":"cyberpunk cat"}', 'Generate AI images'],
                 ['insta_info', '📸 Instagram Info', '/api/insta', 'username', '{"username":"ankit.vaid"}', 'Instagram profile details'],
-                
-                // aayaanmods API (annonymousai key)
-                ['ai_image', '🎨 AI Image Gen', '/api/ai-image', 'prompt', '{"prompt":"cyberpunk cat"}', 'Generate images using AI'],
-                
-                // truecaller leak API
-                ['num_fullinfo', '🔍 Number to Full Info', '/api/num-fullinfo', 'number', '{"number":"919602033122"}', 'Get complete info from phone number (Truecaller leak)']
+                ['num_fullinfo', '🔍 Number to Full Info', '/api/num-fullinfo', 'number', '{"number":"919602033122"}', 'Complete phone number info']
             ];
             
             apis.forEach(api => {
@@ -146,13 +144,10 @@ function requireAuth(req, res, next) {
     next();
 }
 
-// ========== API PROXY MAP WITH ALL MASTER KEYS ==========
+// ========== API PROXY MAP ==========
 const apiProxyMap = {
-    // subhxcosmo APIs (ITACHI key)
     'telegram': (p) => `https://api.subhxcosmo.in/api?key=${MASTER_KEYS.subhxcosmo}&type=${p.type}&term=${p.term}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxcosmo}&term=${p.term}`,
-    
-    // ft-osint APIs (sahil key) - ALL WORKING
     'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
     'name-details': (p) => `https://ft-osint-api.onrender.com/api/name?key=${MASTER_KEYS.ftosint}&name=${p.name}`,
@@ -166,12 +161,8 @@ const apiProxyMap = {
     'bgmi': (p) => `https://ft-osint-api.onrender.com/api/bgmi?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
     'ff': (p) => `https://ft-osint-api.onrender.com/api/ff?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
     'aadhar': (p) => `https://ft-osint-api.onrender.com/api/aadhar?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
-    'insta': (p) => `https://ft-osint-api.onrender.com/api/insta?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
-    
-    // aayaanmods API (annonymousai key)
     'ai-image': (p) => `https://ayaanmods.site/aiimage.php?key=${MASTER_KEYS.ayaanmods}&prompt=${p.prompt}`,
-    
-    // truecaller leak API
+    'insta': (p) => `https://ft-osint-api.onrender.com/api/insta?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
     'num-fullinfo': (p) => `https://say-wallahai-bro-say-wallahi.onrender.com/raavan/v34/query=${p.number}/key=${MASTER_KEYS.truecallerLeak}`
 };
 
@@ -182,11 +173,17 @@ app.get('/', (req, res) => {
 
 app.get('/endpoints', (req, res) => {
     db.all('SELECT * FROM available_apis WHERE is_active = 1', [], (err, apis) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Database error');
-        }
-        res.render('endpoints', { apis: apis || [], baseUrl: req.protocol + '://' + req.get('host') });
+        db.all('SELECT endpoint_name, is_up FROM api_status', [], (err, status) => {
+            const statusMap = {};
+            if (status) {
+                status.forEach(s => statusMap[s.endpoint_name] = s.is_up);
+            }
+            res.render('endpoints', { 
+                apis: apis || [], 
+                baseUrl: req.protocol + '://' + req.get('host'),
+                statusMap: statusMap
+            });
+        });
     });
 });
 
@@ -203,20 +200,13 @@ app.get('/login', (req, res) => {
 // ========== LOGIN ROUTE ==========
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log('🔐 Login attempt:', username);
     
     if (!username || !password) {
         return res.redirect('/login?error=missing');
     }
     
     db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
-        if (err) {
-            console.error('DB error:', err);
-            return res.status(500).send('Database error');
-        }
-        
-        if (!user) {
-            console.log('❌ User not found:', username);
+        if (err || !user) {
             return res.redirect('/login?error=invalid');
         }
         
@@ -224,16 +214,11 @@ app.post('/login', async (req, res) => {
             const match = await bcrypt.compare(password, user.password);
             if (match) {
                 req.session.user = { id: user.id, username: user.username, role: user.role };
-                req.session.save(() => {
-                    console.log('✅ Login successful:', username);
-                    res.redirect('/admin/dashboard');
-                });
+                res.redirect('/admin/dashboard');
             } else {
-                console.log('❌ Wrong password for:', username);
                 res.redirect('/login?error=invalid');
             }
         } catch (bcryptError) {
-            console.error('Bcrypt error:', bcryptError);
             res.status(500).send('Login error');
         }
     });
@@ -249,11 +234,17 @@ app.get('/admin/dashboard', requireAuth, (req, res) => {
     db.all('SELECT * FROM api_keys ORDER BY created_at DESC', [], (err, keys) => {
         db.get('SELECT SUM(hits) as total FROM api_keys', [], (err, hits) => {
             db.get('SELECT COUNT(*) as active FROM api_keys WHERE status="active"', [], (err, active) => {
-                res.render('dashboard', { 
-                    keys: keys || [], 
-                    totalHits: hits?.total || 0,
-                    active: active?.active || 0,
-                    user: req.session.user
+                db.all(`SELECT endpoint, COUNT(*) as count FROM analytics GROUP BY endpoint ORDER BY count DESC LIMIT 10`, [], (err, popular) => {
+                    db.all(`SELECT api_key, COUNT(*) as calls FROM analytics GROUP BY api_key ORDER BY calls DESC LIMIT 5`, [], (err, topUsers) => {
+                        res.render('dashboard', { 
+                            keys: keys || [], 
+                            totalHits: hits?.total || 0,
+                            active: active?.active || 0,
+                            popular: popular || [],
+                            topUsers: topUsers || [],
+                            user: req.session.user
+                        });
+                    });
                 });
             });
         });
@@ -281,68 +272,59 @@ app.post('/admin/delete-key', requireAuth, (req, res) => {
     res.redirect('/admin/dashboard');
 });
 
+app.post('/admin/toggle-status', requireAuth, (req, res) => {
+    const { id, status } = req.body;
+    db.run('UPDATE api_keys SET status = ? WHERE id = ?', [status === 'active' ? 'disabled' : 'active', id]);
+    res.redirect('/admin/dashboard');
+});
+
 // ========== API PROXY HANDLER ==========
 app.all('/api/:endpoint', limiter, async (req, res) => {
     const userKey = req.query.key || req.body.key;
     const endpoint = req.params.endpoint;
     const clientIp = req.ip || req.connection.remoteAddress;
     
-    // Check if user provided their API key
     if (!userKey) {
-        return res.json({ error: 'API key required. Get your key from admin', contact: '@BMW_AURA4', channel: 'https://t.me/OSINTERA_1' });
+        return res.json({ error: 'API key required', contact: '@BMW_AURA4', channel: 'https://t.me/OSINTERA_1' });
     }
     
-    // Verify user's key from database
     db.get('SELECT * FROM api_keys WHERE key = ? AND status = "active"', [userKey], async (err, keyData) => {
         if (err || !keyData) {
             return res.json({ error: 'Invalid or inactive API key', contact: '@BMW_AURA4' });
         }
         
-        // Check expiry
         if (keyData.expires_at && new Date(keyData.expires_at) < new Date()) {
             return res.json({ error: `API key expired on ${new Date(keyData.expires_at).toLocaleDateString()}`, contact: '@BMW_AURA4' });
         }
         
-        // Increment hits (if not unlimited)
         if (!keyData.unlimited_hits) {
             db.run('UPDATE api_keys SET hits = hits + 1 WHERE id = ?', [keyData.id]);
         }
         
-        // Get proxy function
         const proxyFn = apiProxyMap[endpoint];
         if (!proxyFn) {
             return res.json({ error: 'Unknown endpoint', available: Object.keys(apiProxyMap) });
         }
         
         try {
-            // Build target URL with master keys
             const targetUrl = proxyFn({ ...req.query, ...req.body });
             console.log('🌐 Proxying to:', targetUrl.substring(0, 100));
             
-            // Make request with browser headers to avoid 403
             const response = await axios.get(targetUrl, { 
                 timeout: 30000,
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': 'application/json, text/plain, */*',
                     'Accept-Language': 'en-US,en;q=0.9',
                     'Accept-Encoding': 'gzip, deflate, br',
                     'Referer': 'https://www.google.com/',
-                    'Origin': 'https://www.google.com',
-                    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120"',
-                    'Sec-Ch-Ua-Mobile': '?0',
-                    'Sec-Ch-Ua-Platform': '"Windows"',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Site': 'cross-site'
+                    'Origin': 'https://www.google.com'
                 }
             });
             
-            // Log analytics
             db.run(`INSERT INTO analytics (api_key, endpoint, status_code, ip_address) VALUES (?, ?, ?, ?)`,
                 [userKey, endpoint, response.status, clientIp]);
             
-            // Add owner info to response
             let result = response.data;
             if (typeof result === 'object') {
                 result.owner = keyData.owner_username || '@BMW_AURA4 / @BMW_AURA1';
@@ -367,6 +349,26 @@ app.all('/api/:endpoint', limiter, async (req, res) => {
     });
 });
 
+// ========== CRON JOBS ==========
+cron.schedule('0 0 * * *', () => {
+    console.log('🔄 Running daily expiry check...');
+    db.run('UPDATE api_keys SET status = "expired" WHERE expires_at < datetime("now") AND status = "active"');
+});
+
+cron.schedule('*/30 * * * *', async () => {
+    console.log('📊 Checking API health...');
+    for (const [name, fn] of Object.entries(apiProxyMap)) {
+        try {
+            const start = Date.now();
+            await axios.get(fn({ key: 'health_check', type: 'tg', term: 'test' }), { timeout: 5000 });
+            const ms = Date.now() - start;
+            db.run('INSERT OR REPLACE INTO api_status (endpoint_name, is_up, last_checked, response_ms) VALUES (?, 1, datetime("now"), ?)', [name, ms]);
+        } catch(e) {
+            db.run('INSERT OR REPLACE INTO api_status (endpoint_name, is_up, last_checked, response_ms) VALUES (?, 0, datetime("now"), 0)', [name]);
+        }
+    }
+});
+
 // ========== START SERVER ==========
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
@@ -375,11 +377,6 @@ app.listen(PORT, () => {
     console.log(`🔐 Admin Login: superadmin / aura@1234`);
     console.log(`📁 Database: ${DB_PATH}`);
     console.log(`📡 Endpoints: http://localhost:${PORT}/endpoints`);
-    console.log(`🔑 Master Keys Loaded:`);
-    console.log(`   - subhxcosmo: ${MASTER_KEYS.subhxcosmo}`);
-    console.log(`   - ftosint: ${MASTER_KEYS.ftosint}`);
-    console.log(`   - ayaanmods: ${MASTER_KEYS.ayaanmods}`);
-    console.log(`   - truecallerLeak: ${MASTER_KEYS.truecallerLeak.substring(0, 15)}...`);
     console.log(`=====================================\n`);
 });
 
