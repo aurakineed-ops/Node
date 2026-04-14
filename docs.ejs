@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - OSINT Hub</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            font-family: monospace;
+            color: #0f0;
+            padding: 2rem;
+        }
+        h1 { color: #0f0; border-bottom: 1px solid #0f0; }
+        .endpoint {
+            background: #0f0f1a;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-left: 3px solid #0f0;
+        }
+        code { background: #000; padding: 0.2rem 0.5rem; border-radius: 5px; }
+        pre { background: #000; padding: 1rem; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>📡 OSINT API Hub Documentation</h1>
+    <p>Base URL: <code><%= baseUrl %></code></p>
+    <p>Need API key? Contact: <strong>@BMW_AURA4</strong> or <strong>@BMW_AURA1</strong></p>
+    <hr>
+    
+    <% apis.forEach(api => { %>
+    <div class="endpoint">
+        <h3><%= api.display_name %></h3>
+        <p><strong>Endpoint:</strong> <code>GET <%= baseUrl %><%= api.endpoint %></code></p>
+        <p><strong>Parameters:</strong> <%= api.required_params %></p>
+        <p><strong>Example:</strong></p>
+        <pre><code><%= baseUrl %><%= api.endpoint %>?key=YOUR_API_KEY&<%= Object.entries(JSON.parse(api.example_params || '{}')).map(([k,v]) => `${k}=${v}`).join('&') %></code></pre>
+        <p><strong>Response includes:</strong> owner (@BMW_AURA4 / @BMW_AURA1), channel (https://t.me/OSINTERA_1)</p>
+    </div>
+    <% }); %>
+    
+    <footer style="margin-top: 3rem; text-align: center;">
+        <p>© OSINT API Hub | All requests tracked | Contact for key: @BMW_AURA4</p>
+    </footer>
+</body>
+</html>

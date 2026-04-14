@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - OSINT API Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a1a, #0f0f2a);
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        /* Glass Navbar */
+        .navbar {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo { font-size: 1.5rem; font-weight: 800; color: #00ffcc; }
+        
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: 0.3s;
+        }
+        
+        .stat-card:hover { transform: translateY(-5px); border-color: #00ffcc; }
+        .stat-value { font-size: 2.5rem; font-weight: 800; color: #00ffcc; }
+        .stat-label { margin-top: 0.5rem; opacity: 0.7; }
+        
+        /* Forms */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin: 1.5rem;
+        }
+        
+        .glass-card h2 { margin-bottom: 1rem; color: #00ffcc; }
+        
+        input, select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 0.75rem;
+            border-radius: 12px;
+            color: white;
+            margin: 0.5rem;
+            width: calc(100% - 1rem);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #00ffcc22, #0099ff22);
+            border: 1px solid #00ffcc;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            color: #00ffcc;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #00ffcc;
+            color: #000;
+            box-shadow: 0 0 20px #00ffcc;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 200, 0.2);
+        }
+        
+        th { color: #00ffcc; }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        
+        .badge-active { background: #00ff8844; color: #00ff88; }
+        .badge-expired { background: #ff444444; color: #ff4444; }
+        
+        @media (max-width: 768px) {
+            .stats-container { grid-template-columns: 1fr; }
+            .glass-card { margin: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🔐 OSINT API HUB - ADMIN</div>
+        <div>
+            <span>Welcome, <%= user.username %></span>
+            <a href="/logout" style="color:#ff4444; margin-left:1rem;">Logout</a>
+        </div>
+    </nav>
+    
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-value"><%= totalHits %></div>
+            <div class="stat-label">Total API Hits</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"><%= active %></div>
+            <div class="stat-label">Active Keys</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"><%= keys.length %></div>
+            <div class="stat-label">Total Keys</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"><%= popular.length %></div>
+            <div class="stat-label">Active Endpoints</div>
+        </div>
+    </div>
+    
+    <div class="glass-card">
+        <h2>➕ Generate New API Key</h2>
+        <form method="POST" action="/admin/generate-key">
+            <input type="text" name="name" placeholder="Key Name (e.g., Client XYZ)" required>
+            <input type="text" name="owner_username" placeholder="Owner Username" value="@BMW_AURA4">
+            <input type="text" name="owner_channel" placeholder="Channel Link" value="https://t.me/OSINTERA_1">
+            <select name="expiry">
+                <option value="7d">7 Days</option>
+                <option value="15d">15 Days</option>
+                <option value="1m">1 Month</option>
+                <option value="1y">1 Year</option>
+            </select>
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="unlimited" value="true"> Unlimited Hits (0 = Unlimited)
+            </label>
+            <button type="submit">🚀 Generate Key</button>
+        </form>
+    </div>
+    
+    <div class="glass-card">
+        <h2>📊 Most Used Endpoints</h2>
+        <table>
+            <tr><th>Endpoint</th><th>Request Count</th></tr>
+            <% popular.forEach(p => { %>
+            <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
+            <% }); %>
+        </table>
+    </div>
+    
+    <div class="glass-card">
+        <h2>🔑 All API Keys</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <tr>
+                    <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Owner</th><th>Actions</th>
+                </tr>
+                <% keys.forEach(k => { %>
+                <tr>
+                    <td><code><%= k.key %></code></td>
+                    <td><%= k.name %></td>
+                    <td><%= k.hits %></td>
+                    <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
+                    <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
+                    <td><%= k.owner_username %></td>
+                    <td>
+                        <form method="POST" action="/admin/delete-key" style="display:inline">
+                            <input type="hidden" name="id" value="<%= k.id %>">
+                            <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <% }); %>
+            </table>
+        </div>
+    </div>
+    
+    <div class="glass-card">
+        <h2>📈 Live Analytics</h2>
+        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a> - Public endpoint list</p>
+        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a> - Complete documentation</p>
+        <p>🔗 Base URL: <code id="baseUrl"></code></p>
+    </div>
+    
+    <script>
+        document.getElementById('baseUrl').innerText = window.location.origin;
+    </script>
+</body>
+</html>
