@@ -5,18 +5,138 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-const cron = require('node-cron');
-const db = require('./database');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 const app = express();
 
+// ========== SQLITE CONNECTION (PERSISTENT FOR RENDER) ==========
+// Render pe data persist karne ke liye /var/data use karo
+const DB_PATH = process.env.NODE_ENV === 'production' 
+  ? '/var/data/api_keys.db'  // Render persistent disk
+  : path.join(__dirname, 'api_keys.db');  // Local development
+
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ SQLite database connected:', DB_PATH);
+    initDatabase();
+  }
+});
+
+// Database initialization
+function initDatabase() {
+  db.serialize(() => {
+    // Users table
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT
+    )`);
+
+    // API keys table
+    db.run(`CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE,
+      name TEXT,
+      owner_username TEXT,
+      owner_channel TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME,
+      hits INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      unlimited_hits BOOLEAN DEFAULT 0,
+      allowed_apis TEXT
+    )`);
+
+    // Analytics table
+    db.run(`CREATE TABLE IF NOT EXISTS analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      api_key TEXT,
+      endpoint TEXT,
+      request_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+      response_time INTEGER,
+      status_code INTEGER,
+      ip_address TEXT
+    )`);
+
+    // API status tracking
+    db.run(`CREATE TABLE IF NOT EXISTS api_status (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint_name TEXT,
+      is_up BOOLEAN DEFAULT 1,
+      last_checked DATETIME DEFAULT CURRENT_TIMESTAMP,
+      response_ms INTEGER
+    )`);
+
+    // Available APIs
+    db.run(`CREATE TABLE IF NOT EXISTS available_apis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      display_name TEXT,
+      endpoint TEXT,
+      required_params TEXT,
+      example_params TEXT,
+      description TEXT,
+      is_active BOOLEAN DEFAULT 1
+    )`);
+
+    // Insert default admin (if not exists)
+    const hashedPassword = bcrypt.hashSync('aura@1234', 10);
+    db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`, 
+      ['superadmin', hashedPassword, 'admin']);
+
+    // Insert APIs (if not exists)
+    const apis = [
+      ['telegram', '📞 Telegram Number Lookup', '/api/telegram', 'key,type,term', '{"type":"tg","term":"8489944328"}', 'Get Telegram account details from phone number'],
+      ['family', '👨‍👩‍👧‍👦 Family Tree', '/api/family', 'key,term', '{"term":"979607168114"}', 'Family relationship lookup'],
+      ['num_india', '🇮🇳 Indian Number Info', '/api/num-india', 'key,num', '{"num":"9876543210"}', 'Indian mobile number details'],
+      ['num_pak', '🇵🇰 Pakistani Number', '/api/num-pak', 'key,number', '{"number":"03001234567"}', 'Pakistani mobile number info'],
+      ['name_details', '👤 Name to Details', '/api/name-details', 'key,name', '{"name":"abhiraaj"}', 'Get information from name'],
+      ['bank_info', '🏦 Bank IFSC Info', '/api/bank', 'key,ifsc', '{"ifsc":"SBIN0001234"}', 'Bank branch details from IFSC code'],
+      ['pan_info', '📄 PAN Card Info', '/api/pan', 'key,pan', '{"pan":"AXDPR2606K"}', 'PAN card details verification'],
+      ['vehicle_info', '🚗 Vehicle Info', '/api/vehicle', 'key,vehicle', '{"vehicle":"HR26DA1337"}', 'Vehicle registration details'],
+      ['rc_info', '📋 RC Details', '/api/rc', 'key,owner', '{"owner":"HR26EV0001"}', 'Registration certificate info'],
+      ['ip_info', '🌐 IP Geolocation', '/api/ip', 'key,ip', '{"ip":"8.8.8.8"}', 'IP address location and ISP details'],
+      ['pincode_info', '📍 Pincode Info', '/api/pincode', 'key,pin', '{"pin":"110001"}', 'Area details from pincode'],
+      ['git_info', '🐙 GitHub User', '/api/git', 'key,username', '{"username":"octocat"}', 'GitHub profile information'],
+      ['bgmi_info', '🎮 BGMI Player', '/api/bgmi', 'key,uid', '{"uid":"5121439477"}', 'Battlegrounds Mobile India player stats'],
+      ['ff_info', '🔫 FreeFire ID', '/api/ff', 'key,uid', '{"uid":"123456789"}', 'FreeFire player details'],
+      ['aadhar_info', '🆔 Aadhar Info', '/api/aadhar', 'key,num', '{"num":"393933081942"}', 'Aadhar card verification'],
+      ['ai_image', '🎨 AI Image Gen', '/api/ai-image', 'key,prompt', '{"prompt":"cyberpunk cat"}', 'Generate images using AI'],
+      ['insta_info', '📸 Instagram Info', '/api/insta', 'key,username', '{"username":"ankit.vaid"}', 'Instagram profile details']
+    ];
+    
+    apis.forEach(api => {
+      db.run(`INSERT OR IGNORE INTO available_apis (name, display_name, endpoint, required_params, example_params, description) VALUES (?, ?, ?, ?, ?, ?)`, api);
+    });
+    
+    console.log('✅ Database initialized with all tables');
+  });
+}
+
+// ========== MIDDLEWARE ==========
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cors());
-app.use(session({ secret: 'osint_hub_secret_2024', resave: false, saveUninitialized: true }));
+app.set('trust proxy', 1);
 
-// Rate limiting per key
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'osint_hub_secret_2024',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
@@ -37,33 +157,64 @@ app.get('/', (req, res) => {
 
 app.get('/endpoints', async (req, res) => {
   db.all('SELECT * FROM available_apis WHERE is_active = 1', [], (err, apis) => {
-    db.all('SELECT endpoint_name, is_up FROM api_status', [], (err, status) => {
-      const statusMap = {};
-      status.forEach(s => statusMap[s.endpoint_name] = s.is_up);
-      res.render('endpoints', { 
-        apis: apis, 
-        baseUrl: req.protocol + '://' + req.get('host'),
-        statusMap: statusMap
-      });
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
+    }
+    res.render('endpoints', { 
+      apis: apis || [], 
+      baseUrl: req.protocol + '://' + req.get('host')
     });
   });
 });
 
 app.get('/docs', async (req, res) => {
   db.all('SELECT * FROM available_apis WHERE is_active = 1', [], (err, apis) => {
-    res.render('docs', { apis: apis, baseUrl: req.protocol + '://' + req.get('host') });
+    res.render('docs', { apis: apis || [], baseUrl: req.protocol + '://' + req.get('host') });
   });
 });
 
 // ========== AUTH ROUTES ==========
-app.get('/login', (req, res) => res.render('login'));
+app.get('/login', (req, res) => {
+  res.render('login', { error: req.query.error });
+});
+
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log('🔐 Login attempt:', username);
+  
+  if (!username || !password) {
+    return res.redirect('/login?error=missing');
+  }
+  
   db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
-    if (user && await bcrypt.compare(password, user.password)) {
-      req.session.user = user;
-      res.redirect('/admin/dashboard');
-    } else res.redirect('/login?error=1');
+    if (err) {
+      console.error('❌ Database error:', err.message);
+      return res.status(500).send('Database error');
+    }
+    
+    if (!user) {
+      console.log('❌ User not found:', username);
+      return res.redirect('/login?error=invalid');
+    }
+    
+    try {
+      const match = await bcrypt.compare(password, user.password);
+      if (match) {
+        req.session.user = { id: user.id, username: user.username, role: user.role };
+        req.session.save((err) => {
+          if (err) console.error('Session save error:', err);
+          console.log('✅ Login successful:', username);
+          res.redirect('/admin/dashboard');
+        });
+      } else {
+        console.log('❌ Password mismatch for:', username);
+        res.redirect('/login?error=invalid');
+      }
+    } catch (bcryptError) {
+      console.error('❌ Bcrypt error:', bcryptError);
+      res.status(500).send('Login system error');
+    }
   });
 });
 
@@ -79,15 +230,13 @@ app.get('/admin/dashboard', requireAuth, async (req, res) => {
       db.get('SELECT COUNT(*) as active_keys FROM api_keys WHERE status="active"', [], (err, active) => {
         db.get('SELECT SUM(hits) as total_hits FROM api_keys', [], (err, hits) => {
           db.all(`SELECT endpoint, COUNT(*) as count FROM analytics GROUP BY endpoint ORDER BY count DESC LIMIT 10`, [], (err, popular) => {
-            db.all(`SELECT api_key, COUNT(*) as calls FROM analytics GROUP BY api_key ORDER BY calls DESC LIMIT 5`, [], (err, topUsers) => {
-              res.render('dashboard', { 
-                keys, 
-                total: total?.total || 0, 
-                active: active?.active_keys || 0,
-                totalHits: hits?.total_hits || 0,
-                popular: popular || [],
-                topUsers: topUsers || []
-              });
+            res.render('dashboard', { 
+              keys: keys || [], 
+              total: total?.total || 0, 
+              active: active?.active_keys || 0,
+              totalHits: hits?.total_hits || 0,
+              popular: popular || [],
+              user: req.session.user
             });
           });
         });
@@ -156,7 +305,7 @@ app.all('/api/:endpoint', limiter, async (req, res) => {
   }
   
   db.get('SELECT * FROM api_keys WHERE key = ?', [userKey], async (err, keyData) => {
-    if (!keyData) {
+    if (err || !keyData) {
       return res.json({ error: 'Invalid API key', contact: '@BMW_AURA4 or @BMW_AURA1' });
     }
     
@@ -196,11 +345,6 @@ app.all('/api/:endpoint', limiter, async (req, res) => {
         result.owner = keyData.owner_username || '@BMW_AURA4 / @BMW_AURA1';
         result.channel = keyData.owner_channel || 'https://t.me/OSINTERA_1';
         result.api_key_used = userKey;
-        if (!keyData.unlimited_hits) {
-          db.get('SELECT hits FROM api_keys WHERE key = ?', [userKey], (err, newHits) => {
-            result.remaining_hits = keyData.expires_at ? 'Unlimited' : 'N/A';
-          });
-        }
       }
       
       res.json(result);
@@ -217,24 +361,10 @@ app.all('/api/:endpoint', limiter, async (req, res) => {
   });
 });
 
-// ========== CRON JOBS ==========
-cron.schedule('0 0 * * *', () => {
-  console.log('🔄 Running daily expiry check...');
-  db.run('UPDATE api_keys SET status = "expired" WHERE expires_at < datetime("now") AND status = "active"');
+// ========== START SERVER ==========
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🔥 API Hub running on http://localhost:${PORT}`);
+  console.log(`📡 SQLite DB path: ${DB_PATH}`);
+  console.log(`🔐 Admin login: superadmin / aura@1234`);
 });
-
-cron.schedule('*/30 * * * *', async () => {
-  console.log('📊 Checking API health...');
-  for (const [name, fn] of Object.entries(apiProxyMap)) {
-    try {
-      const start = Date.now();
-      await axios.get(fn({ key: 'health_check', type: 'tg', term: 'test' }), { timeout: 5000 });
-      const ms = Date.now() - start;
-      db.run('INSERT OR REPLACE INTO api_status (endpoint_name, is_up, last_checked, response_ms) VALUES (?, 1, datetime("now"), ?)', [name, ms]);
-    } catch(e) {
-      db.run('INSERT OR REPLACE INTO api_status (endpoint_name, is_up, last_checked, response_ms) VALUES (?, 0, datetime("now"), 0)', [name]);
-    }
-  }
-});
-
-app.listen(3000, () => console.log('🔥 API Hub running on http://localhost:3000'));
