@@ -448,8 +448,13 @@ cron.schedule('*/30 * * * *', async () => {
 // ========== START SERVER ==========
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`\n🚀 ========== OSINT API HUB ==========`);
-    console.log(`🔥 Server running on http://localhost:${PORT}`);
-    console.log(`🔐 Admin Login: superadmin / aura@1234`);
-    console.log(`📁 Database: ${DB_PATH}`);
-    console.log(`📡 Endpoints: http://localhost:${POR
+    console.log('\n🚀 ========== OSINT API HUB ==========');
+    console.log('🔥 Server running on http://localhost:' + PORT);
+    console.log('🔐 Admin Login: superadmin / aura@1234');
+    console.log('📁 Database: ' + DB_PATH);
+    console.log('📡 Endpoints: http://localhost:' + PORT + '/endpoints');
+    console.log('🧪 Test API: POST /api/test');
+    console.log('=====================================\n');
+});
+
+module.exports = app;
