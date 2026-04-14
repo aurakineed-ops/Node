@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - OSINT API Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             background: linear-gradient(135deg, #0a0a1a, #0f0f2a);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             color: #e0e0e0;
             min-height: 100vh;
         }
         
-        /* Glass Navbar */
         .navbar {
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(20px);
@@ -24,11 +22,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .logo { font-size: 1.5rem; font-weight: 800; color: #00ffcc; }
         
-        /* Stats Cards */
+        .logout-btn {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            color: #ff4444;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: #ff4444;
+            color: #000;
+        }
+        
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -50,7 +63,6 @@
         .stat-value { font-size: 2.5rem; font-weight: 800; color: #00ffcc; }
         .stat-label { margin-top: 0.5rem; opacity: 0.7; }
         
-        /* Forms */
         .glass-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -112,10 +124,25 @@
         
         .badge-active { background: #00ff8844; color: #00ff88; }
         .badge-expired { background: #ff444444; color: #ff4444; }
+        .badge-disabled { background: #ffaa0044; color: #ffaa00; }
+        
+        .delete-btn {
+            background: #ff444422;
+            border-color: #ff4444;
+            color: #ff4444;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        
+        .delete-btn:hover {
+            background: #ff4444;
+            color: #000;
+        }
         
         @media (max-width: 768px) {
             .stats-container { grid-template-columns: 1fr; }
             .glass-card { margin: 1rem; }
+            th, td { font-size: 0.7rem; padding: 0.5rem; }
         }
     </style>
 </head>
@@ -123,27 +150,23 @@
     <nav class="navbar">
         <div class="logo">🔐 OSINT API HUB - ADMIN</div>
         <div>
-            <span>Welcome, <%= user.username %></span>
-            <a href="/logout" style="color:#ff4444; margin-left:1rem;">Logout</a>
+            <span>Welcome, <%= user?.username || 'Admin' %></span>
+            <a href="/logout" class="logout-btn" style="margin-left:1rem;">Logout</a>
         </div>
     </nav>
     
     <div class="stats-container">
         <div class="stat-card">
-            <div class="stat-value"><%= totalHits %></div>
+            <div class="stat-value"><%= totalHits || 0 %></div>
             <div class="stat-label">Total API Hits</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value"><%= active %></div>
+            <div class="stat-value"><%= active || 0 %></div>
             <div class="stat-label">Active Keys</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value"><%= keys.length %></div>
+            <div class="stat-value"><%= keys ? keys.length : 0 %></div>
             <div class="stat-label">Total Keys</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value"><%= popular.length %></div>
-            <div class="stat-label">Active Endpoints</div>
         </div>
     </div>
     
@@ -167,47 +190,53 @@
     </div>
     
     <div class="glass-card">
-        <h2>📊 Most Used Endpoints</h2>
-        <table>
-            <tr><th>Endpoint</th><th>Request Count</th></tr>
-            <% popular.forEach(p => { %>
-            <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
-            <% }); %>
-        </table>
-    </div>
-    
-    <div class="glass-card">
         <h2>🔑 All API Keys</h2>
         <div style="overflow-x: auto;">
             <table>
-                <tr>
-                    <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Owner</th><th>Actions</th>
-                </tr>
-                <% keys.forEach(k => { %>
-                <tr>
-                    <td><code><%= k.key %></code></td>
-                    <td><%= k.name %></td>
-                    <td><%= k.hits %></td>
-                    <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
-                    <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
-                    <td><%= k.owner_username %></td>
-                    <td>
-                        <form method="POST" action="/admin/delete-key" style="display:inline">
-                            <input type="hidden" name="id" value="<%= k.id %>">
-                            <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                <% }); %>
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Name</th>
+                        <th>Hits</th>
+                        <th>Expires</th>
+                        <th>Status</th>
+                        <th>Owner</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (keys && keys.length > 0) { %>
+                        <% keys.forEach(k => { %>
+                        <tr>
+                            <td><code style="font-size:0.7rem;"><%= k.key %></code></td>
+                            <td><%= k.name || '-' %></td>
+                            <td><%= k.hits || 0 %></td>
+                            <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
+                            <td><span class="badge badge-<%= k.status === 'active' ? 'active' : (k.status === 'expired' ? 'expired' : 'disabled') %>"><%= k.status || 'active' %></span></td>
+                            <td><%= k.owner_username || '@BMW_AURA4' %></td>
+                            <td>
+                                <form method="POST" action="/admin/delete-key" style="display:inline">
+                                    <input type="hidden" name="id" value="<%= k.id %>">
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="7" style="text-align:center;">No API keys generated yet. Create your first key above!</td>
+                        </tr>
+                    <% } %>
+                </tbody>
             </table>
         </div>
     </div>
     
     <div class="glass-card">
-        <h2>📈 Live Analytics</h2>
-        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a> - Public endpoint list</p>
-        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a> - Complete documentation</p>
-        <p>🔗 Base URL: <code id="baseUrl"></code></p>
+        <h2>📈 Quick Links</h2>
+        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a></p>
+        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a></p>
+        <p>🔗 Base URL: <code id="baseUrl" style="background:#000; padding:0.2rem 0.5rem; border-radius:8px;"></code></p>
     </div>
     
     <script>
