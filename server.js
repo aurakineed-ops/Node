@@ -31,7 +31,7 @@ db.serialize(() => {
         role TEXT
     )`);
 
-    // API keys table
+    // API keys table (updated with allowed_apis)
     db.run(`CREATE TABLE IF NOT EXISTS api_keys (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         key TEXT UNIQUE,
@@ -43,7 +43,7 @@ db.serialize(() => {
         hits INTEGER DEFAULT 0,
         status TEXT DEFAULT 'active',
         unlimited_hits BOOLEAN DEFAULT 0,
-        allowed_apis TEXT
+        allowed_apis TEXT DEFAULT '[]'
     )`);
 
     // Analytics table
@@ -54,7 +54,8 @@ db.serialize(() => {
         request_time DATETIME DEFAULT CURRENT_TIMESTAMP,
         response_time INTEGER,
         status_code INTEGER,
-        ip_address TEXT
+        ip_address TEXT,
+        response_data TEXT
     )`);
 
     // API status tracking
@@ -78,7 +79,7 @@ db.serialize(() => {
         is_active BOOLEAN DEFAULT 1
     )`);
 
-    // Create admin user (superadmin / aura@1234)
+    // Create admin user
     const hashedPassword = bcrypt.hashSync('aura@1234', 10);
     db.run(`INSERT OR REPLACE INTO users (id, username, password, role) VALUES (1, 'superadmin', ?, 'admin')`, [hashedPassword]);
 
@@ -109,7 +110,7 @@ db.serialize(() => {
             apis.forEach(api => {
                 db.run(`INSERT INTO available_apis (name, display_name, endpoint, required_params, example_params, description) VALUES (?, ?, ?, ?, ?, ?)`, api);
             });
-            console.log('✅ 18 Working APIs inserted');
+            console.log('✅ 18 APIs inserted');
         }
     });
 });
@@ -168,7 +169,18 @@ const apiProxyMap = {
 
 // ========== PUBLIC ROUTES ==========
 app.get('/', (req, res) => {
-    res.render('index', { user: req.session.user });
+    db.all('SELECT COUNT(*) as total_apis FROM available_apis', [], (err, apisCount) => {
+        db.get('SELECT COUNT(*) as total_keys FROM api_keys', [], (err, keysCount) => {
+            db.get('SELECT SUM(hits) as total_hits FROM api_keys', [], (err, hitsTotal) => {
+                res.render('index', { 
+                    user: req.session.user,
+                    totalApis: apisCount?.[0]?.total_apis || 0,
+                    totalKeys: keysCount?.total_keys || 0,
+                    totalHits: hitsTotal?.total_hits || 0
+                });
+            });
+        });
+    });
 });
 
 app.get('/endpoints', (req, res) => {
@@ -185,6 +197,39 @@ app.get('/endpoints', (req, res) => {
             });
         });
     });
+});
+
+// TEST API endpoint
+app.post('/api/test', async (req, res) => {
+    const { endpoint, params } = req.body;
+    const proxyFn = apiProxyMap[endpoint];
+    
+    if (!proxyFn) {
+        return res.json({ error: 'Unknown endpoint', success: false });
+    }
+    
+    try {
+        const targetUrl = proxyFn({ ...params, key: MASTER_KEYS.ftosint });
+        const startTime = Date.now();
+        const response = await axios.get(targetUrl, { timeout: 15000 });
+        const responseTime = Date.now() - startTime;
+        
+        res.json({
+            success: true,
+            response_time_ms: responseTime,
+            status_code: response.status,
+            data: response.data,
+            endpoint: endpoint,
+            url: targetUrl.substring(0, 150) + '...'
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            status_code: error.response?.status || 500,
+            endpoint: endpoint
+        });
+    }
 });
 
 app.get('/docs', (req, res) => {
@@ -236,13 +281,16 @@ app.get('/admin/dashboard', requireAuth, (req, res) => {
             db.get('SELECT COUNT(*) as active FROM api_keys WHERE status="active"', [], (err, active) => {
                 db.all(`SELECT endpoint, COUNT(*) as count FROM analytics GROUP BY endpoint ORDER BY count DESC LIMIT 10`, [], (err, popular) => {
                     db.all(`SELECT api_key, COUNT(*) as calls FROM analytics GROUP BY api_key ORDER BY calls DESC LIMIT 5`, [], (err, topUsers) => {
-                        res.render('dashboard', { 
-                            keys: keys || [], 
-                            totalHits: hits?.total || 0,
-                            active: active?.active || 0,
-                            popular: popular || [],
-                            topUsers: topUsers || [],
-                            user: req.session.user
+                        db.all('SELECT * FROM available_apis WHERE is_active = 1', [], (err, apis) => {
+                            res.render('dashboard', { 
+                                keys: keys || [], 
+                                totalHits: hits?.total || 0,
+                                active: active?.active || 0,
+                                popular: popular || [],
+                                topUsers: topUsers || [],
+                                apis: apis || [],
+                                user: req.session.user
+                            });
                         });
                     });
                 });
@@ -252,7 +300,7 @@ app.get('/admin/dashboard', requireAuth, (req, res) => {
 });
 
 app.post('/admin/generate-key', requireAuth, (req, res) => {
-    const { name, owner_username, owner_channel, expiry, unlimited } = req.body;
+    const { name, owner_username, owner_channel, expiry, unlimited, allowed_apis } = req.body;
     const apiKey = 'OSINT_' + Math.random().toString(36).substring(2, 18).toUpperCase();
     let expires_at = null;
     
@@ -261,9 +309,21 @@ app.post('/admin/generate-key', requireAuth, (req, res) => {
     else if (expiry === '1m') expires_at = new Date(Date.now() + 30*24*60*60*1000);
     else if (expiry === '1y') expires_at = new Date(Date.now() + 365*24*60*60*1000);
     
-    db.run(`INSERT INTO api_keys (key, name, owner_username, owner_channel, expires_at, unlimited_hits, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'active')`, 
-            [apiKey, name, owner_username || '@BMW_AURA4', owner_channel || 'https://t.me/OSINTERA_1', expires_at, unlimited === 'true' ? 1 : 0]);
+    // Convert allowed_apis to JSON string
+    let allowedApisJson = '["all"]';
+    if (allowed_apis && allowed_apis !== 'all') {
+        if (Array.isArray(allowed_apis)) {
+            allowedApisJson = JSON.stringify(allowed_apis);
+        } else if (typeof allowed_apis === 'string') {
+            allowedApisJson = JSON.stringify([allowed_apis]);
+        }
+    } else if (allowed_apis === 'all') {
+        allowedApisJson = '["all"]';
+    }
+    
+    db.run(`INSERT INTO api_keys (key, name, owner_username, owner_channel, expires_at, unlimited_hits, allowed_apis, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`, 
+            [apiKey, name, owner_username || '@BMW_AURA4', owner_channel || 'https://t.me/OSINTERA_1', expires_at, unlimited === 'true' ? 1 : 0, allowedApisJson]);
     res.redirect('/admin/dashboard');
 });
 
@@ -295,6 +355,22 @@ app.all('/api/:endpoint', limiter, async (req, res) => {
         
         if (keyData.expires_at && new Date(keyData.expires_at) < new Date()) {
             return res.json({ error: `API key expired on ${new Date(keyData.expires_at).toLocaleDateString()}`, contact: '@BMW_AURA4' });
+        }
+        
+        // Check if this API is allowed for the key
+        let allowedApis = [];
+        try {
+            allowedApis = JSON.parse(keyData.allowed_apis || '[]');
+        } catch(e) {
+            allowedApis = [];
+        }
+        
+        if (!allowedApis.includes('all') && allowedApis.length > 0 && !allowedApis.includes(endpoint)) {
+            return res.json({ 
+                error: `This API endpoint (${endpoint}) is not allowed for your key`,
+                allowed_apis: allowedApis,
+                contact: '@BMW_AURA4'
+            });
         }
         
         if (!keyData.unlimited_hits) {
@@ -376,8 +452,4 @@ app.listen(PORT, () => {
     console.log(`🔥 Server running on http://localhost:${PORT}`);
     console.log(`🔐 Admin Login: superadmin / aura@1234`);
     console.log(`📁 Database: ${DB_PATH}`);
-    console.log(`📡 Endpoints: http://localhost:${PORT}/endpoints`);
-    console.log(`=====================================\n`);
-});
-
-module.exports = app;
+    console.log(`📡 Endpoints: http://localhost:${POR
