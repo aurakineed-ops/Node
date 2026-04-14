@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - OSINT API Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             background: linear-gradient(135deg, #0a0a1a, #0f0f2a);
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', sans-serif;
             color: #e0e0e0;
             min-height: 100vh;
         }
@@ -26,21 +27,6 @@
         }
         
         .logo { font-size: 1.5rem; font-weight: 800; color: #00ffcc; }
-        
-        .logout-btn {
-            background: rgba(255, 68, 68, 0.2);
-            border: 1px solid #ff4444;
-            padding: 0.5rem 1rem;
-            border-radius: 30px;
-            color: #ff4444;
-            text-decoration: none;
-            transition: 0.3s;
-        }
-        
-        .logout-btn:hover {
-            background: #ff4444;
-            color: #000;
-        }
         
         .stats-container {
             display: grid;
@@ -72,9 +58,9 @@
             margin: 1.5rem;
         }
         
-        .glass-card h2 { margin-bottom: 1rem; color: #00ffcc; }
+        .glass-card h2 { margin-bottom: 1rem; color: #00ffcc; border-left: 3px solid #00ffcc; padding-left: 1rem; }
         
-        input, select {
+        input, select, textarea {
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(0, 255, 200, 0.3);
             padding: 0.75rem;
@@ -124,25 +110,42 @@
         
         .badge-active { background: #00ff8844; color: #00ff88; }
         .badge-expired { background: #ff444444; color: #ff4444; }
-        .badge-disabled { background: #ffaa0044; color: #ffaa00; }
         
-        .delete-btn {
-            background: #ff444422;
-            border-color: #ff4444;
-            color: #ff4444;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.8rem;
+        .api-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
         }
         
-        .delete-btn:hover {
-            background: #ff4444;
-            color: #000;
+        .test-result {
+            background: #0a0a1a;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        
+        .param-input {
+            display: inline-block;
+            width: auto;
+            margin: 0.25rem;
         }
         
         @media (max-width: 768px) {
             .stats-container { grid-template-columns: 1fr; }
             .glass-card { margin: 1rem; }
-            th, td { font-size: 0.7rem; padding: 0.5rem; }
         }
     </style>
 </head>
@@ -150,26 +153,64 @@
     <nav class="navbar">
         <div class="logo">🔐 OSINT API HUB - ADMIN</div>
         <div>
-            <span>Welcome, <%= user?.username || 'Admin' %></span>
-            <a href="/logout" class="logout-btn" style="margin-left:1rem;">Logout</a>
+            <span>Welcome, <%= user.username %></span>
+            <a href="/logout" style="color:#ff4444; margin-left:1rem;">Logout</a>
         </div>
     </nav>
     
     <div class="stats-container">
         <div class="stat-card">
-            <div class="stat-value"><%= totalHits || 0 %></div>
+            <div class="stat-value"><%= totalHits %></div>
             <div class="stat-label">Total API Hits</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value"><%= active || 0 %></div>
+            <div class="stat-value"><%= active %></div>
             <div class="stat-label">Active Keys</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value"><%= keys ? keys.length : 0 %></div>
+            <div class="stat-value"><%= keys.length %></div>
             <div class="stat-label">Total Keys</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"><%= apis.length %></div>
+            <div class="stat-label">Total Endpoints</div>
         </div>
     </div>
     
+    <!-- ========== NEW: API TESTING SECTION (ADMIN ONLY) ========== -->
+    <div class="glass-card">
+        <h2>🧪 API Testing Tool (Admin Only)</h2>
+        <p style="margin-bottom: 1rem;">Test any API endpoint directly - No API key required</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <!-- Left: API Selector -->
+            <div>
+                <label><strong>Select API Endpoint:</strong></label>
+                <select id="testEndpoint" onchange="updateParams()" style="width: 100%;">
+                    <option value="">-- Select API --</option>
+                    <% apis.forEach(api => { %>
+                    <option value="<%= api.name %>" data-params="<%= api.required_params %>" data-example="<%= api.example_params %>">
+                        <%= api.display_name %> (<%= api.name %>)
+                    </option>
+                    <% }); %>
+                </select>
+                
+                <div id="paramsContainer" style="margin-top: 1rem;"></div>
+                
+                <button onclick="runTest()" style="margin-top: 1rem; width: 100%;">🚀 Run Test</button>
+            </div>
+            
+            <!-- Right: Result -->
+            <div>
+                <label><strong>Response:</strong></label>
+                <div id="testResult" class="test-result">
+                    <span style="opacity:0.5;">Select an API and click Run Test...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== Generate Key Section ========== -->
     <div class="glass-card">
         <h2>➕ Generate New API Key</h2>
         <form method="POST" action="/admin/generate-key">
@@ -182,65 +223,189 @@
                 <option value="1m">1 Month</option>
                 <option value="1y">1 Year</option>
             </select>
+            
+            <div style="margin: 1rem 0;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="selectAll" onclick="toggleAllApis()"> <strong>Select All APIs</strong>
+                </label>
+                <div class="api-selector">
+                    <% apis.forEach(api => { %>
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="allowed_apis" value="<%= api.name %>" class="api-checkbox">
+                        <%= api.display_name %>
+                    </label>
+                    <% }); %>
+                </div>
+            </div>
+            
             <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="unlimited" value="true"> Unlimited Hits (0 = Unlimited)
+                <input type="checkbox" name="unlimited" value="true"> Unlimited Hits
             </label>
             <button type="submit">🚀 Generate Key</button>
         </form>
     </div>
     
+    <!-- ========== Most Used Endpoints ========== -->
+    <div class="glass-card">
+        <h2>📊 Most Used Endpoints</h2>
+        <table>
+            <tr><th>Endpoint</th><th>Request Count</th></tr>
+            <% popular.forEach(p => { %>
+            <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
+            <% }); %>
+            <% if (popular.length === 0) { %>
+            <tr><td colspan="2">No data yet</td></tr>
+            <% } %>
+        </table>
+    </div>
+    
+    <!-- ========== All API Keys ========== -->
     <div class="glass-card">
         <h2>🔑 All API Keys</h2>
         <div style="overflow-x: auto;">
             <table>
-                <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Name</th>
-                        <th>Hits</th>
-                        <th>Expires</th>
-                        <th>Status</th>
-                        <th>Owner</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% if (keys && keys.length > 0) { %>
-                        <% keys.forEach(k => { %>
-                        <tr>
-                            <td><code style="font-size:0.7rem;"><%= k.key %></code></td>
-                            <td><%= k.name || '-' %></td>
-                            <td><%= k.hits || 0 %></td>
-                            <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
-                            <td><span class="badge badge-<%= k.status === 'active' ? 'active' : (k.status === 'expired' ? 'expired' : 'disabled') %>"><%= k.status || 'active' %></span></td>
-                            <td><%= k.owner_username || '@BMW_AURA4' %></td>
-                            <td>
-                                <form method="POST" action="/admin/delete-key" style="display:inline">
-                                    <input type="hidden" name="id" value="<%= k.id %>">
-                                    <button type="submit" class="delete-btn">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <% }); %>
-                    <% } else { %>
-                        <tr>
-                            <td colspan="7" style="text-align:center;">No API keys generated yet. Create your first key above!</td>
-                        </tr>
-                    <% } %>
-                </tbody>
+                <tr>
+                    <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Allowed APIs</th><th>Owner</th><th>Actions</th>
+                </tr>
+                <% keys.forEach(k => { 
+                    let allowedApis = [];
+                    try {
+                        allowedApis = JSON.parse(k.allowed_apis || '[]');
+                    } catch(e) { allowedApis = []; }
+                %>
+                <tr>
+                    <td><code><%= k.key %></code></td>
+                    <td><%= k.name %></td>
+                    <td><%= k.hits %></td>
+                    <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
+                    <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
+                    <td><%= allowedApis.includes('all') ? 'All APIs' : allowedApis.length + ' APIs' %></td>
+                    <td><%= k.owner_username %></td>
+                    <td>
+                        <form method="POST" action="/admin/delete-key" style="display:inline">
+                            <input type="hidden" name="id" value="<%= k.id %>">
+                            <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
+                        </form>
+                        <form method="POST" action="/admin/toggle-status" style="display:inline">
+                            <input type="hidden" name="id" value="<%= k.id %>">
+                            <input type="hidden" name="status" value="<%= k.status %>">
+                            <button type="submit" style="background:#ffaa0022; border-color:#ffaa00; color:#ffaa00; margin-top:0.5rem;">
+                                <%= k.status === 'active' ? 'Disable' : 'Enable' %>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <% }); %>
             </table>
         </div>
     </div>
     
     <div class="glass-card">
-        <h2>📈 Quick Links</h2>
-        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a></p>
-        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a></p>
-        <p>🔗 Base URL: <code id="baseUrl" style="background:#000; padding:0.2rem 0.5rem; border-radius:8px;"></code></p>
+        <h2>📈 Live Analytics</h2>
+        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a> - Public endpoint list</p>
+        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a> - Complete documentation</p>
+        <p>🔗 Base URL: <code id="baseUrl"></code></p>
+        <p>🧪 Test API: Use the testing tool above to check any endpoint</p>
     </div>
     
     <script>
+        const apisData = <%= JSON.stringify(apis) %>;
+        
         document.getElementById('baseUrl').innerText = window.location.origin;
+        
+        function toggleAllApis() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.api-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+        
+        function updateParams() {
+            const select = document.getElementById('testEndpoint');
+            const selectedOption = select.options[select.selectedIndex];
+            const paramsContainer = document.getElementById('paramsContainer');
+            
+            if (!select.value) {
+                paramsContainer.innerHTML = '';
+                return;
+            }
+            
+            const requiredParams = selectedOption.getAttribute('data-params') || '';
+            const exampleParams = JSON.parse(selectedOption.getAttribute('data-example') || '{}');
+            
+            let html = '<label><strong>Parameters:</strong></label><div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+            const paramsList = requiredParams.split(',').map(p => p.trim());
+            
+            paramsList.forEach(param => {
+                const exampleValue = exampleParams[param] || '';
+                html += `
+                    <div style="flex: 1; min-width: 120px;">
+                        <input type="text" id="param_${param}" placeholder="${param}" value="${exampleValue}" class="param-input" style="width: 100%;">
+                    </div>
+                `;
+            });
+            html += '</div>';
+            paramsContainer.innerHTML = html;
+        }
+        
+        async function runTest() {
+            const select = document.getElementById('testEndpoint');
+            const endpoint = select.value;
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!endpoint) {
+                resultDiv.innerHTML = '<span class="error">❌ Please select an API endpoint</span>';
+                return;
+            }
+            
+            // Collect parameters
+            const params = {};
+            const requiredParams = select.options[select.selectedIndex].getAttribute('data-params') || '';
+            const paramsList = requiredParams.split(',').map(p => p.trim());
+            
+            paramsList.forEach(param => {
+                const input = document.getElementById(`param_${param}`);
+                if (input && input.value) {
+                    params[param] = input.value;
+                }
+            });
+            
+            resultDiv.innerHTML = '<span style="color: #00ffcc;">⏳ Testing API... Please wait</span>';
+            
+            try {
+                const response = await fetch('/api/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: endpoint, params: params })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ API Test Successful!</div>
+                        <div style="margin-top: 0.5rem;">
+                            <strong>Response Time:</strong> ${result.response_time_ms}ms<br>
+                            <strong>Status Code:</strong> ${result.status_code}<br>
+                            <strong>Endpoint:</strong> ${result.endpoint}<br>
+                            <hr style="border-color: #333; margin: 0.5rem 0;">
+                            <strong>Response Data:</strong>
+                            <pre style="background: #000; padding: 0.5rem; border-radius: 8px; overflow-x: auto; margin-top: 0.5rem;">${JSON.stringify(result.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ API Test Failed!</div>
+                        <div style="margin-top: 0.5rem;">
+                            <strong>Error:</strong> ${result.error}<br>
+                            <strong>Status Code:</strong> ${result.status_code || 'N/A'}<br>
+                            <strong>Endpoint:</strong> ${result.endpoint}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Request failed: ${error.message}</div>`;
+            }
+        }
     </script>
 </body>
 </html>
