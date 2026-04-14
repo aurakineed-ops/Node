@@ -126,26 +126,58 @@
             background: #0a0a1a;
             border-radius: 12px;
             padding: 1rem;
-            margin-top: 1rem;
             font-family: monospace;
             font-size: 0.8rem;
             overflow-x: auto;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
+            border: 1px solid rgba(0,255,200,0.3);
         }
         
         .success { color: #00ff88; }
         .error { color: #ff4444; }
+        .info { color: #00ffcc; }
         
         .param-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 0.75rem;
+            border-radius: 12px;
+            color: white;
+            width: 100%;
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            color: #000;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 0.75rem;
+        }
+        
+        .test-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px #00ffcc;
+        }
+        
+        .loading {
             display: inline-block;
-            width: auto;
-            margin: 0.25rem;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffcc;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         @media (max-width: 768px) {
             .stats-container { grid-template-columns: 1fr; }
             .glass-card { margin: 1rem; }
+            .navbar { flex-direction: column; gap: 1rem; }
         }
     </style>
 </head>
@@ -177,34 +209,36 @@
         </div>
     </div>
     
-    <!-- ========== NEW: API TESTING SECTION (ADMIN ONLY) ========== -->
+    <!-- ========== API TESTING SECTION (ADMIN ONLY) ========== -->
     <div class="glass-card">
-        <h2>🧪 API Testing Tool (Admin Only)</h2>
-        <p style="margin-bottom: 1rem;">Test any API endpoint directly - No API key required</p>
+        <h2>🧪 API Testing Tool</h2>
+        <p style="margin-bottom: 1rem; opacity: 0.8;">Select an API → Enter parameters → Click Test → See live results instantly</p>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <!-- Left: API Selector -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Left Panel: API Selector & Parameters -->
             <div>
-                <label><strong>Select API Endpoint:</strong></label>
-                <select id="testEndpoint" onchange="updateParams()" style="width: 100%;">
-                    <option value="">-- Select API --</option>
+                <label><strong>📡 1. Select API Endpoint:</strong></label>
+                <select id="testEndpoint" onchange="updateParams()" style="width: 100%; margin-bottom: 1rem;">
+                    <option value="">-- Select an API --</option>
                     <% apis.forEach(api => { %>
-                    <option value="<%= api.name %>" data-params="<%= api.required_params %>" data-example="<%= api.example_params %>">
-                        <%= api.display_name %> (<%= api.name %>)
+                    <option value="<%= api.name %>" data-params="<%= api.required_params %>" data-example="<%= api.example_params %>" data-display="<%= api.display_name %>">
+                        <%= api.display_name %>
                     </option>
                     <% }); %>
                 </select>
                 
                 <div id="paramsContainer" style="margin-top: 1rem;"></div>
                 
-                <button onclick="runTest()" style="margin-top: 1rem; width: 100%;">🚀 Run Test</button>
+                <button onclick="runTest()" class="test-btn" style="margin-top: 1rem; width: 100%;">
+                    🚀 3. Test API Now
+                </button>
             </div>
             
-            <!-- Right: Result -->
+            <!-- Right Panel: Results -->
             <div>
-                <label><strong>Response:</strong></label>
+                <label><strong>📋 4. Live Result:</strong></label>
                 <div id="testResult" class="test-result">
-                    <span style="opacity:0.5;">Select an API and click Run Test...</span>
+                    <span style="opacity:0.5;">👉 Select an API, enter parameters, and click "Test API Now"</span>
                 </div>
             </div>
         </div>
@@ -250,11 +284,12 @@
         <h2>📊 Most Used Endpoints</h2>
         <table>
             <tr><th>Endpoint</th><th>Request Count</th></tr>
-            <% popular.forEach(p => { %>
-            <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
-            <% }); %>
-            <% if (popular.length === 0) { %>
-            <tr><td colspan="2">No data yet</td></tr>
+            <% if (popular && popular.length > 0) { %>
+                <% popular.forEach(p => { %>
+                <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
+                <% }); %>
+            <% } else { %>
+                <tr><td colspan="2">No data yet</td></tr>
             <% } %>
         </table>
     </div>
@@ -264,38 +299,42 @@
         <h2>🔑 All API Keys</h2>
         <div style="overflow-x: auto;">
             <table>
-                <tr>
-                    <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Allowed APIs</th><th>Owner</th><th>Actions</th>
-                </tr>
-                <% keys.forEach(k => { 
-                    let allowedApis = [];
-                    try {
-                        allowedApis = JSON.parse(k.allowed_apis || '[]');
-                    } catch(e) { allowedApis = []; }
-                %>
-                <tr>
-                    <td><code><%= k.key %></code></td>
-                    <td><%= k.name %></td>
-                    <td><%= k.hits %></td>
-                    <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
-                    <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
-                    <td><%= allowedApis.includes('all') ? 'All APIs' : allowedApis.length + ' APIs' %></td>
-                    <td><%= k.owner_username %></td>
-                    <td>
-                        <form method="POST" action="/admin/delete-key" style="display:inline">
-                            <input type="hidden" name="id" value="<%= k.id %>">
-                            <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
-                        </form>
-                        <form method="POST" action="/admin/toggle-status" style="display:inline">
-                            <input type="hidden" name="id" value="<%= k.id %>">
-                            <input type="hidden" name="status" value="<%= k.status %>">
-                            <button type="submit" style="background:#ffaa0022; border-color:#ffaa00; color:#ffaa00; margin-top:0.5rem;">
-                                <%= k.status === 'active' ? 'Disable' : 'Enable' %>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                <% }); %>
+                <thead>
+                    <tr>
+                        <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Allowed APIs</th><th>Owner</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% keys.forEach(k => { 
+                        let allowedApis = [];
+                        try {
+                            allowedApis = JSON.parse(k.allowed_apis || '[]');
+                        } catch(e) { allowedApis = []; }
+                    %>
+                    <tr>
+                        <td><code><%= k.key %></code></td>
+                        <td><%= k.name %></td>
+                        <td><%= k.hits %></td>
+                        <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
+                        <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
+                        <td><%= allowedApis.includes('all') ? 'All APIs' : allowedApis.length + ' APIs' %></td>
+                        <td><%= k.owner_username %></td>
+                        <td>
+                            <form method="POST" action="/admin/delete-key" style="display:inline">
+                                <input type="hidden" name="id" value="<%= k.id %>">
+                                <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
+                            </form>
+                            <form method="POST" action="/admin/toggle-status" style="display:inline">
+                                <input type="hidden" name="id" value="<%= k.id %>">
+                                <input type="hidden" name="status" value="<%= k.status %>">
+                                <button type="submit" style="background:#ffaa0022; border-color:#ffaa00; color:#ffaa00; margin-top:0.5rem;">
+                                    <%= k.status === 'active' ? 'Disable' : 'Enable' %>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
             </table>
         </div>
     </div>
@@ -305,7 +344,7 @@
         <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a> - Public endpoint list</p>
         <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a> - Complete documentation</p>
         <p>🔗 Base URL: <code id="baseUrl"></code></p>
-        <p>🧪 Test API: Use the testing tool above to check any endpoint</p>
+        <p>🧪 Test API: Use the testing tool above to check any endpoint live</p>
     </div>
     
     <script>
@@ -331,19 +370,77 @@
             
             const requiredParams = selectedOption.getAttribute('data-params') || '';
             const exampleParams = JSON.parse(selectedOption.getAttribute('data-example') || '{}');
+            const displayName = selectedOption.getAttribute('data-display') || select.value;
             
-            let html = '<label><strong>Parameters:</strong></label><div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-            const paramsList = requiredParams.split(',').map(p => p.trim());
+            let html = `<div style="background: rgba(0,255,200,0.1); padding: 0.75rem; border-radius: 10px; margin-bottom: 1rem;">
+                            <strong>📌 ${displayName}</strong><br>
+                            <small style="opacity:0.7;">Endpoint: /api/${select.value}</small>
+                        </div>`;
             
-            paramsList.forEach(param => {
-                const exampleValue = exampleParams[param] || '';
-                html += `
-                    <div style="flex: 1; min-width: 120px;">
-                        <input type="text" id="param_${param}" placeholder="${param}" value="${exampleValue}" class="param-input" style="width: 100%;">
-                    </div>
-                `;
-            });
-            html += '</div>';
+            html += '<label><strong>📝 2. Enter Parameters:</strong></label>';
+            const paramsList = requiredParams.split(',').map(p => p.trim()).filter(p => p);
+            
+            if (paramsList.length === 0) {
+                html += '<p style="opacity:0.7; padding: 0.5rem;">No parameters required for this API</p>';
+            } else {
+                paramsList.forEach(param => {
+                    const exampleValue = exampleParams[param] || '';
+                    let placeholder = '';
+                    let inputType = 'text';
+                    
+                    if (param === 'num' || param === 'number') {
+                        inputType = 'tel';
+                        placeholder = 'e.g., 9876543210';
+                    } else if (param === 'uid') {
+                        inputType = 'tel';
+                        placeholder = 'e.g., 5121439477';
+                    } else if (param === 'pin') {
+                        inputType = 'tel';
+                        placeholder = 'e.g., 110001';
+                    } else if (param === 'type') {
+                        inputType = 'text';
+                        placeholder = 'e.g., tg';
+                    } else if (param === 'term') {
+                        inputType = 'text';
+                        placeholder = 'e.g., 8489944328';
+                    } else if (param === 'name') {
+                        inputType = 'text';
+                        placeholder = 'e.g., abhiraaj';
+                    } else if (param === 'username') {
+                        inputType = 'text';
+                        placeholder = 'e.g., ankit.vaid';
+                    } else if (param === 'ifsc') {
+                        inputType = 'text';
+                        placeholder = 'e.g., SBIN0001234';
+                    } else if (param === 'pan') {
+                        inputType = 'text';
+                        placeholder = 'e.g., AXDPR2606K';
+                    } else if (param === 'vehicle') {
+                        inputType = 'text';
+                        placeholder = 'e.g., HR26DA1337';
+                    } else if (param === 'owner') {
+                        inputType = 'text';
+                        placeholder = 'e.g., HR26EV0001';
+                    } else if (param === 'ip') {
+                        inputType = 'text';
+                        placeholder = 'e.g., 8.8.8.8';
+                    } else if (param === 'prompt') {
+                        inputType = 'text';
+                        placeholder = 'e.g., cyberpunk cat';
+                    } else {
+                        inputType = 'text';
+                        placeholder = 'Enter value';
+                    }
+                    
+                    html += `
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.25rem;">${param}:</label>
+                            <input type="${inputType}" id="param_${param}" placeholder="${placeholder}" value="${exampleValue}" class="param-input">
+                        </div>
+                    `;
+                });
+            }
+            
             paramsContainer.innerHTML = html;
         }
         
@@ -353,23 +450,29 @@
             const resultDiv = document.getElementById('testResult');
             
             if (!endpoint) {
-                resultDiv.innerHTML = '<span class="error">❌ Please select an API endpoint</span>';
+                resultDiv.innerHTML = '<div class="error">❌ Please select an API endpoint first</div>';
                 return;
             }
             
             // Collect parameters
             const params = {};
-            const requiredParams = select.options[select.selectedIndex].getAttribute('data-params') || '';
-            const paramsList = requiredParams.split(',').map(p => p.trim());
+            const selectedOption = select.options[select.selectedIndex];
+            const requiredParams = selectedOption.getAttribute('data-params') || '';
+            const paramsList = requiredParams.split(',').map(p => p.trim()).filter(p => p);
             
+            let hasParams = false;
             paramsList.forEach(param => {
                 const input = document.getElementById(`param_${param}`);
                 if (input && input.value) {
                     params[param] = input.value;
+                    hasParams = true;
+                } else if (input) {
+                    params[param] = input.value;
                 }
             });
             
-            resultDiv.innerHTML = '<span style="color: #00ffcc;">⏳ Testing API... Please wait</span>';
+            // Show loading
+            resultDiv.innerHTML = '<div class="info">⏳ Testing API... Please wait <span class="loading"></span></div>';
             
             try {
                 const response = await fetch('/api/test', {
@@ -381,31 +484,29 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    resultDiv.innerHTML = `
-                        <div class="success">✅ API Test Successful!</div>
-                        <div style="margin-top: 0.5rem;">
-                            <strong>Response Time:</strong> ${result.response_time_ms}ms<br>
-                            <strong>Status Code:</strong> ${result.status_code}<br>
-                            <strong>Endpoint:</strong> ${result.endpoint}<br>
-                            <hr style="border-color: #333; margin: 0.5rem 0;">
-                            <strong>Response Data:</strong>
-                            <pre style="background: #000; padding: 0.5rem; border-radius: 8px; overflow-x: auto; margin-top: 0.5rem;">${JSON.stringify(result.data, null, 2)}</pre>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `
-                        <div class="error">❌ API Test Failed!</div>
-                        <div style="margin-top: 0.5rem;">
-                            <strong>Error:</strong> ${result.error}<br>
-                            <strong>Status Code:</strong> ${result.status_code || 'N/A'}<br>
-                            <strong>Endpoint:</strong> ${result.endpoint}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Request failed: ${error.message}</div>`;
-            }
-        }
-    </script>
+    resultDiv.innerHTML = `
+        <div class="success">✅ API Test Successful!</div>
+        <div style="margin-top: 0.75rem;">
+            <div><strong>⏱ Response Time:</strong> ${result.response_time_ms}ms</div>
+            <div><strong>📊 Status Code:</strong> ${result.status_code}</div>
+            <hr style="border-color: #333; margin: 0.75rem 0;">
+            <div><strong>📦 Response Data:</strong></div>
+            <pre style="background: #000; padding: 0.75rem; border-radius: 8px; overflow-x: auto; margin-top: 0.5rem; font-size: 0.7rem; max-height: 300px; overflow-y: auto;">${JSON.stringify(result.data, null, 2)}</pre>
+        </div>
+    `;
+} else {
+    resultDiv.innerHTML = `
+        <div class="error">❌ API Test Failed!</div>
+        <div style="margin-top: 0.75rem;">
+            <div><strong>Error:</strong> ${result.error}</div>
+            <div><strong>Status Code:</strong> ${result.status_code || 'N/A'}</div>
+        </div>
+    `;
+}
+} catch (error) {
+    resultDiv.innerHTML = `<div class="error">❌ Request failed: ${error.message}</div>`;
+}
+}
+</script>
 </body>
 </html>
