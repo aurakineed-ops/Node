@@ -12,7 +12,7 @@ const app = express();
 
 // ========== MASTER API KEYS ==========
 const MASTER_KEYS = {
-    subhxcosmo: 'ITACHI',
+    subhxcosmo: 'Rogers2id',
     ftosint: 'sahil',
     ayaanmods: 'annonymousai',
     truecallerLeak: 'RVN-0nPplC5gSSaeCE98otdrkwKk39c2WsHa'
@@ -147,7 +147,7 @@ function requireAuth(req, res, next) {
 
 // ========== API PROXY MAP ==========
 const apiProxyMap = {
-    'telegram': (p) => `https://api.subhxcosmo.in/api?key=${MASTER_KEYS.subhxcosmo}&type=${p.type}&term=${p.term}`,
+    'telegram': (p) => 'https://cyber-osint-tg-num.vercel.app/api/tginfo?key=${MASTER_KEYS.subhxcosmo}&type=${p.type}&tginfo=${p.term}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxcosmo}&term=${p.term}`,
     'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
