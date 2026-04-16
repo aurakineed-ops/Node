@@ -1,4 +1,4 @@
-require('dotenv').config();
+tginfo('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
@@ -147,7 +147,7 @@ function requireAuth(req, res, next) {
 
 // ========== API PROXY MAP ==========
 const apiProxyMap = {
-    'telegram': (p) => 'https://cyber-osint-tg-num.vercel.app/api/tginfo?key=${MASTER_KEYS.subhxcosmo}&type=${p.type}&tginfo=${p.term}`,
+    'telegram': (p) => 'https://cyber-osint-tg-num.vercel.app/api/ttginfokey=${MASTER_KEYS.subhxcosmo}&type=${p.type}&termfo${p.term}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxcosmo}&term=${p.term}`,
     'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
