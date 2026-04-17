@@ -147,7 +147,7 @@ function requireAuth(req, res, next) {
 
 // ========== API PROXY MAP ==========
 const apiProxyMap = {
-    'telegram': (p) => 'http://api.subhxcosmo.in/api?key=RACKSUN&type=${MASTER_KEYS.subhxcosmo}&type=${p.type}&term${p.term}`,
+    'telegram': (p) => 'http://api.subhxcosmo.in/api?key=${MASTER_KEYS.subhxcosmo}&type=${p.type}&term${p.term}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxcosmo}&term=${p.term}`,
     'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
