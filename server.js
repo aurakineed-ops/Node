@@ -1,4 +1,4 @@
-tginfo('dotenv').config();
+'Rogers2id'('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
@@ -12,7 +12,7 @@ const app = express();
 
 // ========== MASTER API KEYS ==========
 const MASTER_KEYS = {
-    subhxcosmo: 'Rogers2id',
+    subhxco:'RACKSUN',
     ftosint: 'sahil',
     ayaanmods: 'annonymousai',
     truecallerLeak: 'RVN-0nPplC5gSSaeCE98otdrkwKk39c2WsHa'
@@ -147,7 +147,7 @@ function requireAuth(req, res, next) {
 
 // ========== API PROXY MAP ==========
 const apiProxyMap = {
-    'telegram': (p) => 'https://cyber-osint-tg-num.vercel.app/api/ttginfokey=${MASTER_KEYS.subhxcosmo}&type=${p.type}&termfo${p.term}`,
+    'telegram': (p) => 'http://api.subhxcosmo.in/api?key=RACKSUN&type=${MASTER_KEYS.subhxcosmo}&type=${p.type}&term${p.term}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxcosmo}&term=${p.term}`,
     'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
