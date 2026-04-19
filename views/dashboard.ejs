@@ -4,509 +4,404 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - OSINT API Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            background: linear-gradient(135deg, #0a0a1a, #0f0f2a);
-            font-family: 'Inter', sans-serif;
-            color: #e0e0e0;
-            min-height: 100vh;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        .navbar {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 255, 200, 0.3);
-            padding: 1rem 2rem;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
         }
         
-        .logo { font-size: 1.5rem; font-weight: 800; color: #00ffcc; }
-        
-        .stats-container {
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            padding: 2rem;
+            gap: 20px;
+            margin-bottom: 30px;
         }
         
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 200, 0.2);
-            border-radius: 20px;
-            padding: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
-            transition: 0.3s;
         }
         
-        .stat-card:hover { transform: translateY(-5px); border-color: #00ffcc; }
-        .stat-value { font-size: 2.5rem; font-weight: 800; color: #00ffcc; }
-        .stat-label { margin-top: 0.5rem; opacity: 0.7; }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 200, 0.2);
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin: 1.5rem;
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
         }
         
-        .glass-card h2 { margin-bottom: 1rem; color: #00ffcc; border-left: 3px solid #00ffcc; padding-left: 1rem; }
-        
-        input, select, textarea {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(0, 255, 200, 0.3);
-            padding: 0.75rem;
-            border-radius: 12px;
-            color: white;
-            margin: 0.5rem;
-            width: calc(100% - 1rem);
+        .card {
+            background: #1a1f3a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
         }
         
-        button {
-            background: linear-gradient(135deg, #00ffcc22, #0099ff22);
-            border: 1px solid #00ffcc;
-            padding: 0.75rem 1.5rem;
-            border-radius: 30px;
-            color: #00ffcc;
-            cursor: pointer;
-            transition: 0.3s;
-            font-weight: 600;
-        }
-        
-        button:hover {
-            background: #00ffcc;
-            color: #000;
-            box-shadow: 0 0 20px #00ffcc;
+        .card h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            overflow-x: auto;
-            display: block;
         }
         
         th, td {
-            padding: 0.75rem;
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid rgba(0, 255, 200, 0.2);
+            border-bottom: 1px solid #2a2f4a;
         }
         
-        th { color: #00ffcc; }
+        th {
+            background: #667eea;
+            color: #fff;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 2px;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        input, select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #2a2f4a;
+            background: #0a0e27;
+            color: #fff;
+            margin: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: inline-block;
+            width: 150px;
+        }
         
         .badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 12px;
         }
         
-        .badge-active { background: #00ff8844; color: #00ff88; }
-        .badge-expired { background: #ff444444; color: #ff4444; }
-        
-        .api-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.5rem;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 0.5rem;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
+        .badge-success {
+            background: #2ecc71;
         }
         
-        .test-result {
-            background: #0a0a1a;
-            border-radius: 12px;
-            padding: 1rem;
-            font-family: monospace;
-            font-size: 0.8rem;
-            overflow-x: auto;
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid rgba(0,255,200,0.3);
+        .badge-danger {
+            background: #e74c3c;
         }
         
-        .success { color: #00ff88; }
-        .error { color: #ff4444; }
-        .info { color: #00ffcc; }
+        .badge-warning {
+            background: #f39c12;
+        }
         
-        .param-input {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(0, 255, 200, 0.3);
-            padding: 0.75rem;
-            border-radius: 12px;
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-links a {
             color: white;
-            width: 100%;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
         }
         
-        .test-btn {
-            background: linear-gradient(135deg, #00ffcc, #0099ff);
-            color: #000;
-            font-weight: bold;
-            font-size: 1rem;
-            padding: 0.75rem;
+        .logout {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
         }
         
-        .test-btn:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 30px #00ffcc;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #00ffcc;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .key-code {
+            font-family: monospace;
+            font-size: 12px;
+            background: #0a0e27;
+            padding: 3px 6px;
+            border-radius: 3px;
         }
         
         @media (max-width: 768px) {
-            .stats-container { grid-template-columns: 1fr; }
-            .glass-card { margin: 1rem; }
-            .navbar { flex-direction: column; gap: 1rem; }
+            table {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 6px;
+            }
+            .form-group label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">🔐 OSINT API HUB - ADMIN</div>
-        <div>
-            <span>Welcome, <%= user.username %></span>
-            <a href="/logout" style="color:#ff4444; margin-left:1rem;">Logout</a>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Admin Dashboard</h1>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/endpoints">Endpoints</a>
+                <a href="/docs">Docs</a>
+                <a href="/logout" class="logout">Logout</a>
+            </div>
         </div>
-    </nav>
-    
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-value"><%= totalHits %></div>
-            <div class="stat-label">Total API Hits</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value"><%= active %></div>
-            <div class="stat-label">Active Keys</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value"><%= keys.length %></div>
-            <div class="stat-label">Total Keys</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value"><%= apis.length %></div>
-            <div class="stat-label">Total Endpoints</div>
-        </div>
-    </div>
-    
-    <!-- ========== API TESTING SECTION (ADMIN ONLY) ========== -->
-    <div class="glass-card">
-        <h2>🧪 API Testing Tool</h2>
-        <p style="margin-bottom: 1rem; opacity: 0.8;">Select an API → Enter parameters → Click Test → See live results instantly</p>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-            <!-- Left Panel: API Selector & Parameters -->
-            <div>
-                <label><strong>📡 1. Select API Endpoint:</strong></label>
-                <select id="testEndpoint" onchange="updateParams()" style="width: 100%; margin-bottom: 1rem;">
-                    <option value="">-- Select an API --</option>
-                    <% apis.forEach(api => { %>
-                    <option value="<%= api.name %>" data-params="<%= api.required_params %>" data-example="<%= api.example_params %>" data-display="<%= api.display_name %>">
-                        <%= api.display_name %>
-                    </option>
-                    <% }); %>
-                </select>
-                
-                <div id="paramsContainer" style="margin-top: 1rem;"></div>
-                
-                <button onclick="runTest()" class="test-btn" style="margin-top: 1rem; width: 100%;">
-                    🚀 3. Test API Now
-                </button>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><%= totalHits %></div>
+                <div>Total API Calls</div>
             </div>
-            
-            <!-- Right Panel: Results -->
-            <div>
-                <label><strong>📋 4. Live Result:</strong></label>
-                <div id="testResult" class="test-result">
-                    <span style="opacity:0.5;">👉 Select an API, enter parameters, and click "Test API Now"</span>
-                </div>
+            <div class="stat-card">
+                <div class="stat-number"><%= active %></div>
+                <div>Active Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><%= keys.length %></div>
+                <div>Total Keys</div>
             </div>
         </div>
-    </div>
-    
-    <!-- ========== Generate Key Section ========== -->
-    <div class="glass-card">
-        <h2>➕ Generate New API Key</h2>
-        <form method="POST" action="/admin/generate-key">
-            <input type="text" name="name" placeholder="Key Name (e.g., Client XYZ)" required>
-            <input type="text" name="owner_username" placeholder="Owner Username" value="@BMW_AURA4">
-            <input type="text" name="owner_channel" placeholder="Channel Link" value="https://t.me/OSINTERA_1">
-            <select name="expiry">
-                <option value="7d">7 Days</option>
-                <option value="15d">15 Days</option>
-                <option value="1m">1 Month</option>
-                <option value="1y">1 Year</option>
-            </select>
-            
-            <div style="margin: 1rem 0;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <input type="checkbox" id="selectAll" onclick="toggleAllApis()"> <strong>Select All APIs</strong>
-                </label>
-                <div class="api-selector">
-                    <% apis.forEach(api => { %>
-                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="checkbox" name="allowed_apis" value="<%= api.name %>" class="api-checkbox">
-                        <%= api.display_name %>
-                    </label>
-                    <% }); %>
+        
+        <!-- Generate Key Form -->
+        <div class="card">
+            <h2>🔑 Generate New API Key</h2>
+            <form method="POST" action="/admin/generate-key">
+                <div class="form-group">
+                    <label>Key Name:</label>
+                    <input type="text" name="name" placeholder="e.g., My API Key" required>
                 </div>
-            </div>
-            
-            <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="unlimited" value="true"> Unlimited Hits
-            </label>
-            <button type="submit">🚀 Generate Key</button>
-        </form>
-    </div>
-    
-    <!-- ========== Most Used Endpoints ========== -->
-    <div class="glass-card">
-        <h2>📊 Most Used Endpoints</h2>
-        <table>
-            <tr><th>Endpoint</th><th>Request Count</th></tr>
-            <% if (popular && popular.length > 0) { %>
-                <% popular.forEach(p => { %>
-                <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
-                <% }); %>
-            <% } else { %>
-                <tr><td colspan="2">No data yet</td></tr>
-            <% } %>
-        </table>
-    </div>
-    
-    <!-- ========== All API Keys ========== -->
-    <div class="glass-card">
-        <h2>🔑 All API Keys</h2>
-        <div style="overflow-x: auto;">
-            <table>
+                <div class="form-group">
+                    <label>Owner Username:</label>
+                    <input type="text" name="owner_username" placeholder="@username">
+                </div>
+                <div class="form-group">
+                    <label>Owner Channel:</label>
+                    <input type="text" name="owner_channel" placeholder="https://t.me/...">
+                </div>
+                <div class="form-group">
+                    <label>Expiry:</label>
+                    <select name="expiry">
+                        <option value="">Never</option>
+                        <option value="7d">7 Days</option>
+                        <option value="15d">15 Days</option>
+                        <option value="1m">1 Month</option>
+                        <option value="1y">1 Year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Unlimited Hits:</label>
+                    <select name="unlimited">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Allowed APIs:</label>
+                    <select name="allowed_apis">
+                        <option value="all">All APIs</option>
+                        <% apis.forEach(api => { %>
+                            <option value="<%= api.name %>"><%= api.display_name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                
+                <!-- Custom API Key Option -->
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableCustomKey" name="enable_custom" value="true" onchange="toggleCustomKey()">
+                        🔑 Create Custom API Key (any name you want)
+                    </label>
+                </div>
+                
+                <div id="customKeyDiv" style="display:none; margin-top: 10px; margin-bottom: 15px;">
+                    <label>Custom API Key:</label>
+                    <input type="text" name="custom_key" id="custom_key" placeholder="Enter your custom key (e.g., MY_SUPER_KEY, TEST123, etc.)" style="width: 300px;">
+                    <small style="display: block; color: #888;">Minimum 5 characters, no spaces. Must be unique.</small>
+                    <div id="keyStatus" style="margin-top: 5px;"></div>
+                </div>
+                
+                <button type="submit" class="btn btn-success">Generate Key →</button>
+            </form>
+        </div>
+        
+        <!-- API Keys List -->
+        <div class="card">
+            <h2>📋 API Keys List</h2>
+             <table>
                 <thead>
                     <tr>
-                        <th>Key</th><th>Name</th><th>Hits</th><th>Expires</th><th>Status</th><th>Allowed APIs</th><th>Owner</th><th>Actions</th>
+                        <th>API Key</th>
+                        <th>Name</th>
+                        <th>Owner</th>
+                        <th>Hits</th>
+                        <th>Today</th>
+                        <th>Expiry</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% keys.forEach(k => { 
-                        let allowedApis = [];
-                        try {
-                            allowedApis = JSON.parse(k.allowed_apis || '[]');
-                        } catch(e) { allowedApis = []; }
-                    %>
+                    <% keys.forEach(key => { %>
                     <tr>
-                        <td><code><%= k.key %></code></td>
-                        <td><%= k.name %></td>
-                        <td><%= k.hits %></td>
-                        <td><%= k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'Never' %></td>
-                        <td><span class="badge badge-<%= k.status === 'active' ? 'active' : 'expired' %>"><%= k.status %></span></td>
-                        <td><%= allowedApis.includes('all') ? 'All APIs' : allowedApis.length + ' APIs' %></td>
-                        <td><%= k.owner_username %></td>
+                        <td><code class="key-code"><%= key.key %></code></td>
+                        <td><%= key.name %></td>
+                        <td><%= key.owner_username || '-' %></td>
+                        <td><%= key.hits || 0 %></td>
+                        <td><span class="badge badge-success"><%= todayCalls[key.key] || 0 %></span></td>
+                        <td><%= key.expires_at ? new Date(key.expires_at).toLocaleDateString() : 'Never' %></td>
                         <td>
-                            <form method="POST" action="/admin/delete-key" style="display:inline">
-                                <input type="hidden" name="id" value="<%= k.id %>">
-                                <button type="submit" style="background:#ff444422; border-color:#ff4444; color:#ff4444;">Delete</button>
-                            </form>
+                            <span class="badge <%= key.status === 'active' ? 'badge-success' : 'badge-danger' %>">
+                                <%= key.status %>
+                            </span>
+                        </td>
+                        <td>
                             <form method="POST" action="/admin/toggle-status" style="display:inline">
-                                <input type="hidden" name="id" value="<%= k.id %>">
-                                <input type="hidden" name="status" value="<%= k.status %>">
-                                <button type="submit" style="background:#ffaa0022; border-color:#ffaa00; color:#ffaa00; margin-top:0.5rem;">
-                                    <%= k.status === 'active' ? 'Disable' : 'Enable' %>
+                                <input type="hidden" name="id" value="<%= key.id %>">
+                                <input type="hidden" name="status" value="<%= key.status %>">
+                                <button type="submit" class="btn btn-warning">
+                                    <%= key.status === 'active' ? 'Disable' : 'Enable' %>
                                 </button>
+                            </form>
+                            <form method="POST" action="/admin/delete-key" style="display:inline" onsubmit="return confirm('Delete this key?')">
+                                <input type="hidden" name="id" value="<%= key.id %>">
+                                <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
                     </tr>
-                    <% }); %>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Popular Endpoints -->
+        <div class="card">
+            <h2>🔥 Most Used Endpoints</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Calls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% popular.forEach(ep => { %>
+                    <tr>
+                        <td><%= ep.endpoint %></td>
+                        <td><%= ep.count %></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Top Users -->
+        <div class="card">
+            <h2>👥 Top API Key Users</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>API Key</th>
+                        <th>Calls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% topUsers.forEach(user => { %>
+                    <tr>
+                        <td><code class="key-code"><%= user.api_key %></code></td>
+                        <td><%= user.calls %></td>
+                    </tr>
+                    <% }) %>
                 </tbody>
             </table>
         </div>
     </div>
     
-    <div class="glass-card">
-        <h2>📈 Live Analytics</h2>
-        <p>📡 Endpoints Viewer: <a href="/endpoints" style="color:#00ffcc">/endpoints</a> - Public endpoint list</p>
-        <p>📚 API Docs: <a href="/docs" style="color:#00ffcc">/docs</a> - Complete documentation</p>
-        <p>🔗 Base URL: <code id="baseUrl"></code></p>
-        <p>🧪 Test API: Use the testing tool above to check any endpoint live</p>
-    </div>
-    
     <script>
-        const apisData = <%= JSON.stringify(apis) %>;
-        
-        document.getElementById('baseUrl').innerText = window.location.origin;
-        
-        function toggleAllApis() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.api-checkbox');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        function toggleCustomKey() {
+            var checkbox = document.getElementById('enableCustomKey');
+            var div = document.getElementById('customKeyDiv');
+            div.style.display = checkbox.checked ? 'block' : 'none';
         }
         
-        function updateParams() {
-            const select = document.getElementById('testEndpoint');
-            const selectedOption = select.options[select.selectedIndex];
-            const paramsContainer = document.getElementById('paramsContainer');
-            
-            if (!select.value) {
-                paramsContainer.innerHTML = '';
-                return;
-            }
-            
-            const requiredParams = selectedOption.getAttribute('data-params') || '';
-            const exampleParams = JSON.parse(selectedOption.getAttribute('data-example') || '{}');
-            const displayName = selectedOption.getAttribute('data-display') || select.value;
-            
-            let html = `<div style="background: rgba(0,255,200,0.1); padding: 0.75rem; border-radius: 10px; margin-bottom: 1rem;">
-                            <strong>📌 ${displayName}</strong><br>
-                            <small style="opacity:0.7;">Endpoint: /api/${select.value}</small>
-                        </div>`;
-            
-            html += '<label><strong>📝 2. Enter Parameters:</strong></label>';
-            const paramsList = requiredParams.split(',').map(p => p.trim()).filter(p => p);
-            
-            if (paramsList.length === 0) {
-                html += '<p style="opacity:0.7; padding: 0.5rem;">No parameters required for this API</p>';
-            } else {
-                paramsList.forEach(param => {
-                    const exampleValue = exampleParams[param] || '';
-                    let placeholder = '';
-                    let inputType = 'text';
-                    
-                    if (param === 'num' || param === 'number') {
-                        inputType = 'tel';
-                        placeholder = 'e.g., 9876543210';
-                    } else if (param === 'uid') {
-                        inputType = 'tel';
-                        placeholder = 'e.g., 5121439477';
-                    } else if (param === 'pin') {
-                        inputType = 'tel';
-                        placeholder = 'e.g., 110001';
-                    } else if (param === 'type') {
-                        inputType = 'text';
-                        placeholder = 'e.g., tg';
-                    } else if (param === 'term') {
-                        inputType = 'text';
-                        placeholder = 'e.g., 8489944328';
-                    } else if (param === 'name') {
-                        inputType = 'text';
-                        placeholder = 'e.g., abhiraaj';
-                    } else if (param === 'username') {
-                        inputType = 'text';
-                        placeholder = 'e.g., ankit.vaid';
-                    } else if (param === 'ifsc') {
-                        inputType = 'text';
-                        placeholder = 'e.g., SBIN0001234';
-                    } else if (param === 'pan') {
-                        inputType = 'text';
-                        placeholder = 'e.g., AXDPR2606K';
-                    } else if (param === 'vehicle') {
-                        inputType = 'text';
-                        placeholder = 'e.g., HR26DA1337';
-                    } else if (param === 'owner') {
-                        inputType = 'text';
-                        placeholder = 'e.g., HR26EV0001';
-                    } else if (param === 'ip') {
-                        inputType = 'text';
-                        placeholder = 'e.g., 8.8.8.8';
-                    } else if (param === 'prompt') {
-                        inputType = 'text';
-                        placeholder = 'e.g., cyberpunk cat';
-                    } else {
-                        inputType = 'text';
-                        placeholder = 'Enter value';
-                    }
-                    
-                    html += `
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.25rem;">${param}:</label>
-                            <input type="${inputType}" id="param_${param}" placeholder="${placeholder}" value="${exampleValue}" class="param-input">
-                        </div>
-                    `;
-                });
-            }
-            
-            paramsContainer.innerHTML = html;
-        }
-        
-        async function runTest() {
-            const select = document.getElementById('testEndpoint');
-            const endpoint = select.value;
-            const resultDiv = document.getElementById('testResult');
-            
-            if (!endpoint) {
-                resultDiv.innerHTML = '<div class="error">❌ Please select an API endpoint first</div>';
-                return;
-            }
-            
-            // Collect parameters
-            const params = {};
-            const selectedOption = select.options[select.selectedIndex];
-            const requiredParams = selectedOption.getAttribute('data-params') || '';
-            const paramsList = requiredParams.split(',').map(p => p.trim()).filter(p => p);
-            
-            let hasParams = false;
-            paramsList.forEach(param => {
-                const input = document.getElementById(`param_${param}`);
-                if (input && input.value) {
-                    params[param] = input.value;
-                    hasParams = true;
-                } else if (input) {
-                    params[param] = input.value;
-                }
-            });
-            
-            // Show loading
-            resultDiv.innerHTML = '<div class="info">⏳ Testing API... Please wait <span class="loading"></span></div>';
-            
-            try {
-                const response = await fetch('/api/test', {
+        // Check key availability
+        document.getElementById('custom_key')?.addEventListener('input', function() {
+            var key = this.value;
+            if(key.length >= 5) {
+                fetch('/admin/check-key-availability', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ endpoint: endpoint, params: params })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({custom_key: key})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    var statusDiv = document.getElementById('keyStatus');
+                    if(data.available) {
+                        statusDiv.innerHTML = '<span style="color: #2ecc71;">✅ ' + data.message + '</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ ' + data.message + '</span>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error checking key:', err);
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-    resultDiv.innerHTML = `
-        <div class="success">✅ API Test Successful!</div>
-        <div style="margin-top: 0.75rem;">
-            <div><strong>⏱ Response Time:</strong> ${result.response_time_ms}ms</div>
-            <div><strong>📊 Status Code:</strong> ${result.status_code}</div>
-            <hr style="border-color: #333; margin: 0.75rem 0;">
-            <div><strong>📦 Response Data:</strong></div>
-            <pre style="background: #000; padding: 0.75rem; border-radius: 8px; overflow-x: auto; margin-top: 0.5rem; font-size: 0.7rem; max-height: 300px; overflow-y: auto;">${JSON.stringify(result.data, null, 2)}</pre>
-        </div>
-    `;
-} else {
-    resultDiv.innerHTML = `
-        <div class="error">❌ API Test Failed!</div>
-        <div style="margin-top: 0.75rem;">
-            <div><strong>Error:</strong> ${result.error}</div>
-            <div><strong>Status Code:</strong> ${result.status_code || 'N/A'}</div>
-        </div>
-    `;
-}
-} catch (error) {
-    resultDiv.innerHTML = `<div class="error">❌ Request failed: ${error.message}</div>`;
-}
-}
-</script>
+            } else {
+                document.getElementById('keyStatus').innerHTML = '';
+            }
+        });
+    </script>
 </body>
 </html>
