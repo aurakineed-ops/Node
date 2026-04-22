@@ -1,4 +1,4 @@
-require('dotenv').config();
+'RACKSUN'('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
@@ -13,7 +13,7 @@ const app = express();
 // ========== MASTER API KEYS ==========
 const MASTER_KEYS = {
     subhxco:'RACKSUN',
-    ftosint: 'nobita',
+    ftosint:api',
     ayaanmods: 'annonymousai',
     truecallerLeak: 'RATELIMITE-BEIBBkim7bjTAkJIZTIUGPR4FkfNAYoj',
     mistral: 'FVKec5Xqa2ORzSoBrqi21nRbIM6rFk2q',
@@ -183,21 +183,21 @@ const apiProxyMap = {
     'telegram': (p) => `https://cyber-osint-tg-num.vercel.app/api/tginfo?key=${MASTER_KEYS.rogers}&id=${p.id || p.term || p.number}`,
     'email_info': (p) => `https://leak-api-xtradeep.ramaxinfo.workers.dev/?email=${p.email}`,
     'family': (p) => `https://ayaanmods.site/family.php?key=${MASTER_KEYS.subhxco}&term=${p.term}`,
-    'num-india': (p) => `https://ft-osint-api.onrender.com/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
-    'num-pak': (p) => `https://ft-osint-api.onrender.com/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
-    'name-details': (p) => `https://ft-osint-api.onrender.com/api/name?key=${MASTER_KEYS.ftosint}&name=${p.name}`,
-    'bank': (p) => `https://ft-osint-api.onrender.com/api/ifsc?key=${MASTER_KEYS.ftosint}&ifsc=${p.ifsc}`,
-    'pan': (p) => `https://ft-osint-api.onrender.com/api/pan?key=${MASTER_KEYS.ftosint}&pan=${p.pan}`,
-    'vehicle': (p) => `https://ft-osint-api.onrender.com/api/vehicle?key=${MASTER_KEYS.ftosint}&vehicle=${p.vehicle}`,
-    'rc': (p) => `https://ft-osint-api.onrender.com/api/rc?key=${MASTER_KEYS.ftosint}&owner=${p.owner}`,
-    'ip': (p) => `https://ft-osint-api.onrender.com/api/ip?key=${MASTER_KEYS.ftosint}&ip=${p.ip}`,
-    'pincode': (p) => `https://ft-osint-api.onrender.com/api/pincode?key=${MASTER_KEYS.ftosint}&pin=${p.pin}`,
-    'git': (p) => `https://ft-osint-api.onrender.com/api/git?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
-    'bgmi': (p) => `https://ft-osint-api.onrender.com/api/bgmi?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
-    'ff': (p) => `https://ft-osint-api.onrender.com/api/ff?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
-    'aadhar': (p) => `https://ft-osint-api.onrender.com/api/aadhar?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
+    'num-india': (p) => `https://ft-osint-api.duckdns.org/api/number?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
+    'num-pak': (p) => `https://ft-osint-api.duckdns.org/api/pk?key=${MASTER_KEYS.ftosint}&number=${p.number}`,
+    'name-details': (p) => `https://ft-osint-api.duckdns.org/api/name?key=${MASTER_KEYS.ftosint}&name=${p.name}`,
+    'bank': (p) => `https://ft-osint-api.duckdns.org/api/ifsc?key=${MASTER_KEYS.ftosint}&ifsc=${p.ifsc}`,
+    'pan': (p) => `https://ft-osint-api.duckdns.org/api/pan?key=${MASTER_KEYS.ftosint}&pan=${p.pan}`,
+    'vehicle': (p) => `https://ft-osint-api.duckdns.org/api/vehicle?key=${MASTER_KEYS.ftosint}&vehicle=${p.vehicle}`,
+    'rc': (p) => `https://ft-osint-api.duckdns.org/api/rc?key=${MASTER_KEYS.ftosint}&owner=${p.owner}`,
+    'ip': (p) => `https://ft-osint-api.duckdns.org/api/ip?key=${MASTER_KEYS.ftosint}&ip=${p.ip}`,
+    'pincode': (p) => `https://ft-osint-api.duckdns.org/api/pincode?key=${MASTER_KEYS.ftosint}&pin=${p.pin}`,
+    'git': (p) => `https://ft-osint-api.duckdns.org/api/git?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
+    'bgmi': (p) => `https://ft-osint-api.duckdns.org/api/bgmi?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
+    'ff': (p) => `https://ft-osint-api.duckdns.org/api/ff?key=${MASTER_KEYS.ftosint}&uid=${p.uid}`,
+    'aadhar': (p) => `https://ft-osint-api.duckdns.org/api/aadhar?key=${MASTER_KEYS.ftosint}&num=${p.num}`,
     'ai-image': (p) => `https://ayaanmods.site/aiimage.php?key=${MASTER_KEYS.ayaanmods}&prompt=${p.prompt}`,
-    'insta': (p) => `https://ft-osint-api.onrender.com/api/insta?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
+    'insta': (p) => `https://ft-osint-api.duckdns.org/api/insta?key=${MASTER_KEYS.ftosint}&username=${p.username}`,
     'num-fullinfo': (p) => `https://say-wallahai-bro-say-wallahi.onrender.com/raavan/v34/query=${p.number}/key=${MASTER_KEYS.truecallerLeak}`,
     'mistral': (p) => `mistral-direct`,
     'num-newinfo': (p) => `https://cyber-osint-tg-num.vercel.app/api/tginfo?key=${MASTER_KEYS.rogers}&id=${p.id || p.number || p.term}`,
