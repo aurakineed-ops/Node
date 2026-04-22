@@ -1,4 +1,4 @@
-'RACKSUN'('dotenv').config();
+
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
@@ -13,7 +13,7 @@ const app = express();
 // ========== MASTER API KEYS ==========
 const MASTER_KEYS = {
     subhxco:'RACKSUN',
-    ftosint:api',
+    ftosint:'sahil'',
     ayaanmods: 'annonymousai',
     truecallerLeak: 'RATELIMITE-BEIBBkim7bjTAkJIZTIUGPR4FkfNAYoj',
     mistral: 'FVKec5Xqa2ORzSoBrqi21nRbIM6rFk2q',
