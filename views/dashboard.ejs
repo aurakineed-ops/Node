@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .navbar { background: white; border-radius: 15px; margin-bottom: 20px; }
+        .card { border-radius: 15px; margin-bottom: 20px; border: none; }
+        .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0; }
+        .stat-card { background: white; border-radius: 15px; padding: 20px; text-align: center; }
+        .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
+        .badge-active { background: #28a745; padding: 5px 10px; border-radius: 20px; color: white; }
+        .badge-disabled { background: #dc3545; padding: 5px 10px; border-radius: 20px; color: white; }
+        .badge-expired { background: #ffc107; padding: 5px 10px; border-radius: 20px; color: black; }
+        #apiList { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+        .footer { text-align: center; margin-top: 30px; color: white; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+        .form-check { padding-left: 1.8rem; }
+        .form-check-input { margin-left: -1.8rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#"><i class="fas fa-key"></i> OSINT API Hub</a>
+                <div class="ms-auto">
+                    <span class="me-3"><i class="fas fa-user"></i> <%= user.username %> (<%= user.role %>)</span>
+                    <a href="/logout" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-number"><%= totalHits %></div>
+                    <div>Total API Hits</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-number"><%= keys.length %></div>
+                    <div>Total Keys</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-number"><%= active %></div>
+                    <div>Active Keys</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Generate New Key</h3></div>
+                    <div class="card-body">
+                        <form method="POST" action="/admin/generate-key">
+                            <div class="mb-3">
+                                <label class="form-label">👤 Customer Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">📱 App Name</label>
+                                <input type="text" name="app_name" class="form-control">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" id="enableCustomKey" class="form-check-input" onchange="toggleCustomKey()">
+                                    <label class="form-check-label">🔧 Custom API Key</label>
+                                </div>
+                                <input type="text" name="custom_key" id="customKey" class="form-control mt-2" placeholder="e.g., SAHIL, ERAAA, OSINT, KUD" style="display:none;">
+                                <small class="text-muted">Any name you want!</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">📅 Validity</label>
+                                <select name="expiry" class="form-select">
+                                    <option value="7d">7 Days</option>
+                                    <option value="15d">15 Days</option>
+                                    <option value="1m" selected>30 Days</option>
+                                    <option value="1y">1 Year</option>
+                                    <option value="">No Expiry</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">⚡ Hits Limit</label>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="radio" name="limit_type" id="unlimitedRadio" value="unlimited" class="form-check-input" onchange="toggleLimitInput()" checked>
+                                            <label>🚀 Unlimited Hits</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="radio" name="limit_type" id="limitedRadio" value="limited" class="form-check-input" onchange="toggleLimitInput()">
+                                            <label>🔢 One Time Limit</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="maxTotalHitsDiv" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">📊 Max Total Hits</label>
+                                    <input type="number" name="max_total_hits" class="form-control" value="20">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">📆 Daily Limit</label>
+                                <input type="number" name="daily_limit" class="form-control" value="100">
+                                <small>0 = unlimited</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">🌐 IP Whitelist</label>
+                                <input type="text" name="ip_whitelist" class="form-control" placeholder="192.168.1.1, 10.0.0.1">
+                                <small>Leave empty for all IPs</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">🔌 Select APIs</label>
+                                <div class="mb-2">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="selectAll()">✅ Select All</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAll()">❌ Deselect All</button>
+                                </div>
+                                <div id="apiList">
+                                    <div class="row">
+                                        <% apis.forEach(api => { %>
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="allowed_apis" value="<%= api.name %>" class="form-check-input api-checkbox" id="api_<%= api.name %>">
+                                                <label class="form-check-label" for="api_<%= api.name %>">
+                                                    <%= api.display_name %>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                                <small>Select specific APIs or leave all unchecked for ALL APIs</small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-key"></i> Generate Key</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-list"></i> API Keys</h3></div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Key</th><th>Name</th><th>Hits</th><th>Status</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                <% keys.forEach(key => { %>
+                                <tr>
+                                    <td><code><%= key.key %></code></td>
+                                    <td><%= key.name || key.app_name || '-' %></td>
+                                    <td><%= key.hits %>/<%= key.max_total_hits || '∞' %></td>
+                                    <td><span class="badge-<%= key.status %>"><%= key.status %></span></td>
+                                    <td>
+                                        <form method="POST" action="/admin/toggle-status" style="display:inline">
+                                            <input type="hidden" name="id" value="<%= key.id %>">
+                                            <input type="hidden" name="status" value="<%= key.status %>">
+                                            <button class="btn btn-sm btn-warning"><i class="fas fa-power-off"></i></button>
+                                        </form>
+                                        <form method="POST" action="/admin/delete-key" style="display:inline" onsubmit="return confirm('Delete this key?')">
+                                            <input type="hidden" name="id" value="<%= key.id %>">
+                                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Owner: @BMW_AURA5 | Channel: @OSINT_ERA1</p>
+        </div>
+    </div>
+    
+    <script>
+        function toggleCustomKey() {
+            const cb = document.getElementById('enableCustomKey');
+            document.getElementById('customKey').style.display = cb.checked ? 'block' : 'none';
+        }
+        function toggleLimitInput() {
+            const isLimited = document.getElementById('limitedRadio').checked;
+            document.getElementById('maxTotalHitsDiv').style.display = isLimited ? 'block' : 'none';
+        }
+        function selectAll() {
+            document.querySelectorAll('.api-checkbox').forEach(cb => cb.checked = true);
+        }
+        function deselectAll() {
+            document.querySelectorAll('.api-checkbox').forEach(cb => cb.checked = false);
+        }
+    </script>
+</body>
+</html>
