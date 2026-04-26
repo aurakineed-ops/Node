@@ -100,6 +100,12 @@
             margin-top: 30px;
             color: white;
         }
+        code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -152,52 +158,45 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="mb-0"><i class="fas fa-plus-circle"></i> 🔑 Full Access Key</h3>
-                        <small>Issue a new key with custom advanced limits and security rules.</small>
+                        <h3 class="mb-0"><i class="fas fa-plus-circle"></i> 🔑 Generate New Key</h3>
                     </div>
                     <div class="card-body">
                         <form method="POST" action="/admin/generate-key">
                             
-                            <!-- CUSTOMER NAME -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">👤 CUSTOMER NAME</label>
-                                <input type="text" name="name" class="form-control" placeholder="e.g., John Doe" required>
-                                <small class="text-muted">e.g., John Doe</small>
+                                <label class="form-label fw-bold">👤 Customer Name</label>
+                                <input type="text" name="name" class="form-control" required>
                             </div>
 
-                            <!-- APP NAME -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">📱 APP NAME</label>
-                                <input type="text" name="app_name" class="form-control" placeholder="e.g., My Portal">
-                                <small class="text-muted">e.g., My Portal</small>
+                                <label class="form-label fw-bold">📱 App Name</label>
+                                <input type="text" name="app_name" class="form-control">
                             </div>
 
                             <!-- Custom Key Option -->
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input type="checkbox" id="enableCustomKey" class="form-check-input" onchange="toggleCustomKey()">
+                                    <input type="checkbox" id="enableCustomKey" name="enable_custom" value="true" class="form-check-input" onchange="toggleCustomKey()">
                                     <label class="form-check-label fw-bold">🔧 Custom API Key</label>
                                 </div>
-                                <input type="text" name="custom_key" id="customKey" class="form-control mt-2" placeholder="Enter your custom key" style="display:none;">
-                                <small class="text-muted">Optional: Leave blank for auto-generated key</small>
+                                <input type="text" name="custom_key" id="customKey" class="form-control mt-2" placeholder="e.g., SAHIL, ERAAA, OSINT, KUD" style="display:none;">
+                                <small class="text-muted">Any name you want! Examples: SAHIL, ERAAA, OSINT, KUD</small>
                             </div>
 
-                            <!-- DAYS VALIDITY -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">📅 DAYS VALIDITY</label>
+                                <label class="form-label fw-bold">📅 Validity</label>
                                 <select name="expiry" class="form-select">
                                     <option value="7d">7 Days</option>
                                     <option value="15d">15 Days</option>
                                     <option value="1m" selected>30 Days</option>
-                                    <option value="1y">365 Days</option>
-                                    <option value="">No Expiry (Permanent)</option>
+                                    <option value="1y">1 Year</option>
+                                    <option value="">No Expiry</option>
                                 </select>
-                                <small class="text-muted">e.g., 30</small>
                             </div>
 
-                            <!-- LIMIT TYPE SELECTION -->
+                            <!-- Limit Type -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">⚡ HITS LIMIT</label>
+                                <label class="form-label fw-bold">⚡ Hits Limit</label>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-check">
@@ -214,44 +213,30 @@
                                 </div>
                             </div>
 
-                            <!-- MAX TOTAL HITS (One Time Limit) -->
                             <div id="maxTotalHitsDiv" style="display:none;">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">📊 MAX TOTAL HITS</label>
-                                    <input type="number" name="max_total_hits" id="maxTotalHits" class="form-control" value="20" min="1">
-                                    <small class="text-muted">Key will expire after this many API calls</small>
+                                    <label class="form-label fw-bold">📊 Max Total Hits</label>
+                                    <input type="number" name="max_total_hits" class="form-control" value="20">
                                 </div>
                             </div>
 
-                            <!-- DAILY LIMIT -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">📆 DAILY LIMIT</label>
-                                <input type="number" name="daily_limit" class="form-control" value="0" placeholder="0 = no daily limit">
-                                <small class="text-muted">Max requests per day (0 = unlimited)</small>
+                                <label class="form-label fw-bold">📆 Daily Limit</label>
+                                <input type="number" name="daily_limit" class="form-control" value="0">
                             </div>
 
-                            <!-- IP WHITELIST -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">🌐 IP WHITELIST</label>
-                                <input type="text" name="ip_whitelist" class="form-control" placeholder="e.g., 192.168.1.1, 10.0.0.1">
-                                <small class="text-muted">Comma-separated IP addresses (leave empty for all IPs)</small>
+                                <label class="form-label fw-bold">🌐 IP Whitelist</label>
+                                <input type="text" name="ip_whitelist" class="form-control" placeholder="192.168.1.1, 10.0.0.1">
                             </div>
 
-                            <!-- API SELECTION -->
+                            <!-- API Selection -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">🔌 SELECT APIS</label>
-                                
-                                <!-- Select All / Deselect All Buttons -->
+                                <label class="form-label fw-bold">🔌 Select APIs</label>
                                 <div class="mb-2">
-                                    <button type="button" class="btn btn-sm btn-success me-2" onclick="selectAll()">
-                                        ✅ Select All
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAll()">
-                                        ❌ Deselect All
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="selectAll()">✅ Select All</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAll()">❌ Deselect All</button>
                                 </div>
-
-                                <!-- APIs List -->
                                 <div id="apiList">
                                     <div class="row">
                                         <% apis.forEach(api => { %>
@@ -266,16 +251,11 @@
                                         <% }); %>
                                     </div>
                                 </div>
-                                <small class="text-muted">Select one or more APIs this key can access</small>
                             </div>
 
-                            <!-- Submit Button -->
-                            <div class="mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg w-100">
-                                    <i class="fas fa-key"></i> Generate Key
-                                </button>
-                            </div>
-
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-key"></i> Generate Key
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -290,83 +270,27 @@
                     <div class="card-body" style="max-height: 600px; overflow-y: auto;">
                         <table class="table table-hover">
                             <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Name</th>
-                                    <th>Hits</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
+                                <tr><th>Key</th><th>Name</th><th>Hits</th><th>Status</th><th>Actions</th></tr>
                             </thead>
                             <tbody>
                                 <% keys.forEach(key => { %>
                                 <tr>
-                                    <td><code><%= key.key.substring(0, 15) %>...</code></td>
+                                    <td><code><%= key.key %></code></td>
                                     <td><%= key.name || key.app_name || '-' %></td>
                                     <td><%= key.hits %></td>
+                                    <td><span class="badge-<%= key.status === 'active' ? 'active' : 'disabled' %>"><%= key.status %></span></td>
                                     <td>
-                                        <span class="badge-<%= key.status === 'active' ? 'active' : 'disabled' %>">
-                                            <%= key.status %>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <form method="POST" action="/admin/toggle-status" style="display: inline;">
+                                        <form method="POST" action="/admin/toggle-status" style="display:inline">
                                             <input type="hidden" name="id" value="<%= key.id %>">
                                             <input type="hidden" name="status" value="<%= key.status %>">
-                                            <button type="submit" class="btn btn-sm btn-warning">
-                                                <i class="fas fa-power-off"></i>
-                                            </button>
+                                            <button class="btn btn-sm btn-warning"><i class="fas fa-power-off"></i></button>
                                         </form>
-                                        <form method="POST" action="/admin/delete-key" style="display: inline;" onsubmit="return confirm('Delete this key?')">
+                                        <form method="POST" action="/admin/delete-key" style="display:inline" onsubmit="return confirm('Delete?')">
                                             <input type="hidden" name="id" value="<%= key.id %>">
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </td>
                                 </tr>
-                                <% }); %>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Popular Endpoints & Top Users -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0"><i class="fas fa-chart-bar"></i> Popular Endpoints</h3>
-                    </div>
-                    <div class="card-body">
-                        <table class="table">
-                            <thead>
-                                <tr><th>Endpoint</th><th>Requests</th></tr>
-                            </thead>
-                            <tbody>
-                                <% popular.forEach(p => { %>
-                                <tr><td><%= p.endpoint %></td><td><%= p.count %></td></tr>
-                                <% }); %>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0"><i class="fas fa-trophy"></i> Top Users</h3>
-                    </div>
-                    <div class="card-body">
-                        <table class="table">
-                            <thead>
-                                <tr><th>API Key</th><th>Total Calls</th></tr>
-                            </thead>
-                            <tbody>
-                                <% topUsers.forEach(u => { %>
-                                <tr><td><code><%= u.api_key.substring(0, 10) %>...</code></td><td><%= u.calls %></td></tr>
                                 <% }); %>
                             </tbody>
                         </table>
@@ -376,47 +300,26 @@
         </div>
 
         <div class="footer">
-            <p>© 2024 OSINT API Hub | Owner: @BMW_AURA5 | Channel: @OSINT_ERA1</p>
+            <p>© OSINT API Hub | Owner: @BMW_AURA5 | Channel: @OSINT_ERA1</p>
         </div>
     </div>
 
     <script>
         function toggleCustomKey() {
-            const checkbox = document.getElementById('enableCustomKey');
-            const customKeyInput = document.getElementById('customKey');
-            customKeyInput.style.display = checkbox.checked ? 'block' : 'none';
+            const cb = document.getElementById('enableCustomKey');
+            document.getElementById('customKey').style.display = cb.checked ? 'block' : 'none';
         }
-
         function toggleLimitInput() {
-            const unlimitedRadio = document.getElementById('unlimitedRadio');
-            const limitedRadio = document.getElementById('limitedRadio');
-            const maxTotalHitsDiv = document.getElementById('maxTotalHitsDiv');
-            
-            if (limitedRadio.checked) {
-                maxTotalHitsDiv.style.display = 'block';
-            } else {
-                maxTotalHitsDiv.style.display = 'none';
-            }
+            const isLimited = document.getElementById('limitedRadio').checked;
+            document.getElementById('maxTotalHitsDiv').style.display = isLimited ? 'block' : 'none';
         }
-
         function selectAll() {
-            const checkboxes = document.querySelectorAll('.api-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-            });
+            document.querySelectorAll('.api-checkbox').forEach(cb => cb.checked = true);
         }
-
         function deselectAll() {
-            const checkboxes = document.querySelectorAll('.api-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
+            document.querySelectorAll('.api-checkbox').forEach(cb => cb.checked = false);
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            toggleLimitInput();
-            toggleCustomKey();
-        });
+        toggleLimitInput();
     </script>
 </body>
 </html>
