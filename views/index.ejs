@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT API Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            color: white;
+        }
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 16px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .btn-custom {
+            background: white;
+            color: #667eea;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .btn-custom:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+        .features {
+            background: white;
+            padding: 60px 20px;
+            margin-top: 50px;
+        }
+        .feature-box {
+            text-align: center;
+            padding: 20px;
+        }
+        .feature-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/" style="font-size: 1.5rem; font-weight: bold;">
+                    <i class="fas fa-key"></i> OSINT API Hub
+                </a>
+                <div class="ms-auto">
+                    <% if (user) { %>
+                        <span class="text-white me-3">
+                            <i class="fas fa-user"></i> <%= user.username %>
+                        </span>
+                        <a href="/logout" class="btn btn-light btn-sm">Logout</a>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-light btn-sm">Admin Login</a>
+                    <% } %>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <div class="hero">
+            <h1><i class="fas fa-shield-alt"></i> OSINT API Hub</h1>
+            <p>Powerful OSINT APIs for your applications | Only @BMW_AURA5 & @OSINT_ERA1</p>
+            <div>
+                <a href="/endpoints" class="btn btn-custom"><i class="fas fa-code"></i> API Endpoints</a>
+                <a href="/docs" class="btn btn-custom"><i class="fas fa-book"></i> Documentation</a>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-number"><%= (totalApis || 0).toLocaleString() %></div>
+                    <div class="stat-label">Total APIs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"><%= (totalKeys || 0).toLocaleString() %></div>
+                    <div class="stat-label">API Keys Issued</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"><%= (totalHits || 0).toLocaleString() %></div>
+                    <div class="stat-label">Total API Hits</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="features rounded-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                        <h4>Fast & Reliable</h4>
+                        <p>High-speed API responses with 99.9% uptime</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <div class="feature-icon"><i class="fas fa-lock"></i></div>
+                        <h4>Secure Access</h4>
+                        <p>API key based authentication with rate limiting</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h4>Analytics</h4>
+                        <p>Track your API usage and performance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available APIs -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="text-white text-center mb-4">📡 Available APIs</h3>
+            </div>
+        </div>
+        <div class="row">
+            <% const apisList = [ 
+                'Telegram Lookup', 'Email Info', 'Family Tree', 'Indian Number', 'Pakistani Number',
+                'Name Details', 'Bank IFSC', 'PAN Info', 'Vehicle Info', 'RC Details',
+                'IP Geolocation', 'Pincode Info', 'GitHub User', 'BGMI Player', 'FreeFire ID',
+                'Aadhar Info', 'AI Image Gen', 'Instagram Info', 'Number Full Info', 'Mistral AI'
+            ]; %>
+            <% apisList.forEach(api => { %>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="text-white"><i class="fas fa-check-circle"></i> <%= api %></div>
+            </div>
+            <% }); %>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2024 OSINT API Hub | Owner: @BMW_AURA5 | Channel: @OSINT_ERA1</p>
+            <p><small>Powered by Node.js | Express | SQLite</small></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
